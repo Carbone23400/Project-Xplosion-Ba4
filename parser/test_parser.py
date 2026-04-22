@@ -7,7 +7,7 @@ Run with:  pytest tests/test_parser.py -v
 """
 
 import pytest
-from Project-Xplosion-Ba4 import parse_formula, FormulaParseError
+from parser.parser import parse_formula, FormulaParseError
 
 
 # ===========================================================================
