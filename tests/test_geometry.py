@@ -3,7 +3,7 @@ tests/test_geometry.py
 ----------------------
 Test suite for coordchem.geometry
 
-Run with: pytest tests/test_geometry.py -v
+Run with: python -mpytest tests/test_geometry.py -v
 """
 
 import pytest
