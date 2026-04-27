@@ -3,13 +3,13 @@ tests/test_geometry.py
 ----------------------
 Test suite for coordchem.geometry
 
-Run with: python -mpytest tests/test_geometry.py -v
+Run with: python -m pytest tests/test_geometry.py -v
 """
 
 import pytest
 
 from coordchem.parser import parse_formula
-from coordchem.geometry import get_geometry, predict_geometry, geometry_report
+from coordchem.geometry import get_geometry, predict_geometry, geometry_report, get_d_count
 
 # ===========================================================================
 # Helper
@@ -159,9 +159,37 @@ class TestErrorHandling:
         with pytest.raises(Exception):
             get_geometry("[Xx(CN)6]4-")
 
+# ===========================================================================
+# 7. d-electron count
+# ===========================================================================
+
+class TestDCount:
+
+    def test_fe_ii_d6(self):
+        assert get_d_count("[Fe(CN)6]4-") == 6
+
+    def test_fe_iii_d5(self):
+        assert get_d_count("[Fe(CN)6]3-") == 5
+
+    def test_cu_ii_d9(self):
+        assert get_d_count("[Cu(NH3)4]2+") == 9
+
+    def test_pt_ii_d8(self):
+        assert get_d_count("[PtCl2(NH3)2]") == 8
+
+    def test_cr_zero_d6(self):
+        assert get_d_count("[Cr(CO)6]") == 6
+
+    def test_d_count_from_parsed_complex(self):
+        parsed = parse_formula("[Co(en)3]3+")
+        assert get_d_count(parsed) == 6
+
+    def test_report_contains_d_count(self):
+        report = geometry_report("[PtCl2(NH3)2]")
+        assert report["d_count"] == 8
 
 # ===========================================================================
-# 7. Real-world benchmark complexes
+# 8. Real-world benchmark complexes
 # ===========================================================================
 
 class TestBenchmarkComplexes:
