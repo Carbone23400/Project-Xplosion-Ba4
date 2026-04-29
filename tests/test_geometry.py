@@ -62,6 +62,25 @@ class TestParsedComplexInput:
         parsed = parse_formula("[Pt(NH3)2Cl2]")
         assert get_geometry(parsed) == "square planar"
 
+
+# ===========================================================================
+# 2b. Geometry from compound name
+# ===========================================================================
+
+class TestCompoundNameInput:
+
+    def test_geometry_from_full_name(self):
+        assert get_geometry("tetraamminecopper(II)") == "distorted square planar or tetrahedral"
+
+    def test_d_count_from_full_name(self):
+        assert get_d_count("diamminedichloridoplatinum(II)") == 8
+
+    def test_report_from_full_name(self):
+        report = geometry_report("hexacyanidoferrate(II)")
+        assert report["metal"] == "Fe"
+        assert report["coordination_number"] == 6
+        assert report["geometry"] == "octahedral"
+
 # ===========================================================================
 # 3. Coordination number logic
 # ===========================================================================

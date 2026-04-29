@@ -5,7 +5,7 @@ Predict coordination geometry and d-electron count from a complex formula
 or ParsedComplex object.
 """
 
-from .parser import ParsedComplex, parse_formula
+from .parser import FormulaParseError, METALS, ParsedComplex, parse_formula
 
 
 SQUARE_PLANAR_D8_METALS = {"Ni", "Pd", "Pt", "Rh", "Ir", "Au"}
@@ -91,14 +91,44 @@ def geometry_report(complex_input: str | ParsedComplex) -> dict[str, object]:
 
 
 def _ensure_parsed_complex(complex_input: str | ParsedComplex) -> ParsedComplex:
-    """Convert a formula string to a ParsedComplex if needed."""
+    """Convert a formula string, compound name, or ParsedComplex if needed."""
     if isinstance(complex_input, ParsedComplex):
         return complex_input
 
     if isinstance(complex_input, str):
-        return parse_formula(complex_input)
+        if _has_complex_brackets(complex_input):
+            return parse_formula(complex_input)
 
-    raise TypeError("complex_input must be a formula string or a ParsedComplex object")
+        from .name import parse_name
+        if not _looks_like_unbracketed_formula(complex_input):
+            return parse_name(complex_input)
+
+        try:
+            return parse_formula(complex_input)
+        except FormulaParseError:
+            return parse_name(complex_input)
+
+    raise TypeError("complex_input must be a formula string, compound name, or ParsedComplex object")
+
+
+def _has_complex_brackets(complex_input: str) -> bool:
+    """Return True when the input contains coordination-complex brackets."""
+    return "[" in complex_input or "]" in complex_input
+
+
+def _looks_like_unbracketed_formula(complex_input: str) -> bool:
+    """Return True for formulas like PtCl2(NH3)2 without complex brackets."""
+    text = complex_input.strip()
+    if not text or text[0].islower() or " " in text:
+        return False
+
+    for length in (2, 1):
+        metal = text[:length]
+        remainder = text[length:]
+        if metal in METALS and remainder:
+            return remainder[0].isupper() or remainder[0] == "("
+
+    return False
 
 
 def _predict_cn4_geometry(
