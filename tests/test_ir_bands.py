@@ -7,7 +7,7 @@ Run with:  python -m pytest tests/test_ir_bands.py -v
 """
 
 import pytest
-from coordchem.database.ir_bands import IRBandDB, BandRecord
+from src.coordchem.database.ir_bands import IRBandDB, BandRecord
 
 
 @pytest.fixture
