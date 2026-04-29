@@ -83,7 +83,7 @@ METALS: set[str] = {
     "W",  "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi",
     "Ac", "Th", "U",
 }
-
+                  
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -454,3 +454,4 @@ def _format_charge(charge: int) -> str:
 class FormulaParseError(ValueError):
     """Raised when a formula string cannot be parsed."""
     pass
+
