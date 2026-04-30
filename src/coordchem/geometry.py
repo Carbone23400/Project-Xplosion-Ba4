@@ -99,7 +99,7 @@ def _ensure_parsed_complex(complex_input: str | ParsedComplex) -> ParsedComplex:
         if _has_complex_brackets(complex_input):
             return parse_formula(complex_input)
 
-        from .name import parse_name
+        from .name2 import parse_name
         if not _looks_like_unbracketed_formula(complex_input):
             return parse_name(complex_input)
 
