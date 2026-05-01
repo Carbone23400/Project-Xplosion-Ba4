@@ -177,3 +177,44 @@ def test_edta_complex_draws_as_hexadentate_ligand():
 
     assert mol.GetNumAtoms() == 21
     assert len(metal_bonds) == 6
+
+
+def test_edta_projection_has_two_wedges_two_dashes_and_two_plain_bonds():
+    mol = build_coordination_mol("[Co(EDTA)]-")
+
+    bond_dirs = [
+        str(bond.GetBondDir())
+        for bond in mol.GetBonds()
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}
+    ]
+
+    assert bond_dirs.count("BEGINWEDGE") == 2
+    assert bond_dirs.count("BEGINDASH") == 2
+    assert bond_dirs.count("NONE") == 2
+
+
+def test_cn4_projection_has_two_wedges_and_two_dashes():
+    mol = build_coordination_mol("[PtCl4]2-")
+
+    bond_dirs = [
+        str(bond.GetBondDir())
+        for bond in mol.GetBonds()
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}
+    ]
+
+    assert bond_dirs.count("BEGINWEDGE") == 2
+    assert bond_dirs.count("BEGINDASH") == 2
+
+
+def test_cn6_projection_has_two_wedges_two_dashes_and_two_plain_bonds():
+    mol = build_coordination_mol("[Co(NH3)6]3+")
+
+    bond_dirs = [
+        str(bond.GetBondDir())
+        for bond in mol.GetBonds()
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}
+    ]
+
+    assert bond_dirs.count("BEGINWEDGE") == 2
+    assert bond_dirs.count("BEGINDASH") == 2
+    assert bond_dirs.count("NONE") == 2

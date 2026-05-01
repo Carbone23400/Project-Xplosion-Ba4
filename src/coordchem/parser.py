@@ -23,16 +23,16 @@ from typing import Optional
 # ---------------------------------------------------------------------------
 KNOWN_LIGANDS: dict[str, tuple[str, int, int, str]] = {
     # formula        : (common_name,          charge, denticity, donor)
-    "CN"            : ("cyanido",                 -1,    1,      "C"),
-    "NC"            : ("isocyanido",              -1,    1,      "N"),
+    "CN"            : ("cyano",                 -1,    1,      "C"),
+    "NC"            : ("isocyano",              -1,    1,      "N"),
     "CO"            : ("carbonyl",                 0,    1,      "C"),
     "NO"            : ("nitrosyl",                 0,    1,      "N"),
-    "Cl"            : ("chlorido",                -1,    1,      "Cl"),
-    "Br"            : ("bromido",                 -1,    1,      "Br"),
-    "I"             : ("iodido",                  -1,    1,      "I"),
-    "F"             : ("fluorido",                -1,    1,      "F"),
-    "OH"            : ("hydroxido",               -1,    1,      "O"),
-    "O"             : ("oxido",                   -2,    1,      "O"),
+    "Cl"            : ("chloro",                -1,    1,      "Cl"),
+    "Br"            : ("bromo",                 -1,    1,      "Br"),
+    "I"             : ("iodo",                  -1,    1,      "I"),
+    "F"             : ("fluoro",                -1,    1,      "F"),
+    "OH"            : ("hydroxo",               -1,    1,      "O"),
+    "O"             : ("oxo",                   -2,    1,      "O"),
     "S"             : ("sulfido",                 -2,    1,      "S"),
     "NH3"           : ("ammine",                   0,    1,      "N"),
     "H2O"           : ("aqua",                     0,    1,      "O"),
@@ -83,7 +83,7 @@ METALS: set[str] = {
     "W",  "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi",
     "Ac", "Th", "U",
 }
-
+                  
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -454,3 +454,4 @@ def _format_charge(charge: int) -> str:
 class FormulaParseError(ValueError):
     """Raised when a formula string cannot be parsed."""
     pass
+
