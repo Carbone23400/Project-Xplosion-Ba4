@@ -7,7 +7,7 @@ Run with:  pytest tests/test_parser.py -v
 """
 
 import pytest
-from src.coordchem.parser import parse_formula, FormulaParseError
+from coordchem.parser import parse_formula, FormulaParseError
 
 
 # ===========================================================================

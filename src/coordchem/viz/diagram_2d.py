@@ -2,25 +2,43 @@
 coordchem/viz/diagram_2d.py
 ---------------------------
 Advanced 2D drawing for coordination complexes using RDKit.
-
-This module parses a coordination complex with the existing package logic,
-builds a composite RDKit molecule manually, assigns 2D coordinates, and draws
-the result as SVG. It is designed for teaching/report depictions rather than
-crystallographic accuracy.
 """
 
 from __future__ import annotations
 
 from html import escape
 from importlib import import_module
-from math import atan2, cos, pi, sin, sqrt
 from pathlib import Path
+import re
 from typing import Callable
-from dataclasses import dataclass
 
 from ..geometry import get_geometry
 from ..parser import FormulaParseError, ParsedComplex, parse_formula
-
+from .layout_2d import (
+    Site,
+    chelate_octahedral_sites,
+    coordination_sites,
+    edta_octahedral_sites,
+    should_use_chelate_layout,
+    should_use_edta_layout,
+    should_use_tridentate_layout,
+    tridentate_octahedral_sites,
+)
+from .ligand_data import (
+    ABBREVIATED_MONODENTATE_LIGANDS,
+    EXPLICIT_H_LIGANDS,
+    INTERRUPTED_LIGAND_BONDS,
+    LIGAND_DONOR_INDEX_OVERRIDES,
+    LIGAND_SMILES,
+    MONODENTATE_DISPLAY_LABELS,
+    POLYDENTATE_DONOR_DISPLAY_LABELS,
+)
+from .transform_2d import (
+    transform_acac,
+    transform_edta,
+    transform_monodentate,
+    transform_polydentate,
+)
 
 try:
     from rdkit import Chem
@@ -30,137 +48,6 @@ except ImportError as exc:  # pragma: no cover
     raise ImportError(
         "coordchem.viz.diagram_2d requires RDKit. Install rdkit first."
     ) from exc
-
-
-LIGAND_SMILES: dict[str, str] = {
-    "NH3": "N",
-    "H2O": "O",
-    "Cl": "[Cl-]",
-    "Br": "[Br-]",
-    "I": "[I-]",
-    "F": "[F-]",
-    "OH": "[OH-]",
-    "O": "[O-2]",
-    "S": "[S-2]",
-    "CN": "[C-]#N",
-    "NC": "N#[C-]",
-    "CO": "[C-]#[O+]",
-    "NO": "[N]=O",
-    "NO2": "O=[N+]([O-])",
-    "ONO": "O[N+](=O)[O-]",
-    "SCN": "[S-]C#N",
-    "NCS": "N=C=[S-]",
-    "N3": "[N-]=[N+]=N",
-    "CN2H2": "NC#N",
-    "en": "NCCN",
-    "phen": "c1ccc2nc3ccccc3nc2c1",
-    "bipy": "n1ccccc1-c1ncccc1",
-    "bpy": "n1ccccc1-c1ncccc1",
-    "ox": "[O-]C(=O)C(=O)[O-]",
-    "acac": "CC(=O)CC(=O)C",
-    "dien": "NCCNCCN",
-    "tren": "N(CCN)CCN",
-    "EDTA": "N(CC(=O)O)(CC(=O)O)CCN(CC(=O)O)CC(=O)O",
-    "edta": "N(CC(=O)O)(CC(=O)O)CCN(CC(=O)O)CC(=O)O",
-    "Cp": "c1cccc1",
-    "tpy": "n1ccccc1-c1nc(ccc1)-c1ncccc1",
-    "terpy": "n1ccccc1-c1nc(ccc1)-c1ncccc1",
-    "py": "n1ccccc1",
-    "dmso": "CS(=O)C",
-    "PPh3": "P(c1ccccc1)(c1ccccc1)c1ccccc1",
-    "PMe3": "P(C)(C)C",
-    "PEt3": "P(CC)(CC)CC",
-}
-
-
-LIGAND_DONOR_INDEX_OVERRIDES: dict[str, tuple[int, ...]] = {
-    "NH3": (0,),
-    "H2O": (0,),
-    "OH": (0,),
-    "CN": (0,),
-    "NC": (0,),
-    "CO": (0,),
-    "NO": (0,),
-    "NO2": (1,),
-    "ONO": (0,),
-    "SCN": (0,),
-    "NCS": (0,),
-    "py": (0,),
-    "en": (0, 3),
-    "bipy": (0, 7),
-    "bpy": (0, 7),
-    "phen": (4, 11),
-    "ox": (0, 5),
-    "acac": (1, 4),
-    "dien": (0, 3, 6),
-    "EDTA": (0, 4, 8, 11, 15, 19),
-    "edta": (0, 4, 8, 11, 15, 19),
-    "tpy": (0, 7, 13),
-    "terpy": (0, 7, 13),
-    "dmso": (1,),
-    "PPh3": (0,),
-    "PMe3": (0,),
-    "PEt3": (0,),
-}
-
-
-EXPLICIT_H_LIGANDS: set[str] = set()
-
-
-ABBREVIATED_MONODENTATE_LIGANDS: set[str] = {
-    "NH3",
-    "H2O",
-    "Cl",
-    "Br",
-    "I",
-    "F",
-    "OH",
-    "O",
-    "S",
-    "CN",
-    "NC",
-    "CO",
-    "NO",
-    "NO2",
-    "ONO",
-    "SCN",
-    "NCS",
-    "N3",
-}
-
-
-LIGAND_DISPLAY_LABELS: dict[str, tuple[str, str]] = {
-    # (donor atom visually first, donor atom visually last)
-    "H2O": ("OH₂", "H₂O"),
-    "NH3": ("NH₃", "H₃N"),
-    "OH": ("O-H", "HO-"),
-}
-
-
-MONODENTATE_DISPLAY_LABELS: dict[str, tuple[str, str]] = {
-    # (donor atom visually first, donor atom visually last)
-    "NH3": ("NH3", "H3N"),
-    "H2O": ("OH2", "H2O"),
-    "OH": ("OH", "HO"),
-    "CN": ("CN", "NC"),
-    "NC": ("NC", "CN"),
-    "CO": ("CO", "OC"),
-    "NO": ("NO", "ON"),
-    "NO2": ("NO2", "O2N"),
-    "ONO": ("ONO", "ONO"),
-    "SCN": ("SCN", "NCS"),
-    "NCS": ("NCS", "SCN"),
-    "N3": ("N3", "N3"),
-}
-
-
-@dataclass(frozen=True)
-class Site:
-    """One coordination site around the metal."""
-
-    x: float
-    y: float
-    style: str  # plain, wedge, dash
 
 
 def _get_name_parser() -> Callable[[str], ParsedComplex] | None:
@@ -206,227 +93,6 @@ def _expand_ligands(parsed: ParsedComplex) -> list[str]:
     return ligands
 
 
-def _coordination_sites(geometry: str, n_sites: int) -> list[Site]:
-    """Return idealized 2D positions plus bond style cues."""
-    g = geometry.lower().strip()
-
-    if g == "linear":
-        return [Site(-3.0, 0.0, "plain"), Site(3.0, 0.0, "plain")][:n_sites]
-
-    if g == "trigonal planar":
-        return [
-            Site(0.0, -3.1, "plain"),
-            Site(2.7, 1.55, "plain"),
-            Site(-2.7, 1.55, "plain"),
-        ][:n_sites]
-
-    if g == "square planar":
-        return _cn4_depth_sites(n_sites)
-
-    if g == "tetrahedral":
-        return _cn4_depth_sites(n_sites)
-
-    if g == "octahedral":
-        return _cn6_depth_sites(n_sites)
-
-    if "square planar" in g:
-        return _coordination_sites("square planar", n_sites)
-
-    if "tetrahedral" in g:
-        return _coordination_sites("tetrahedral", n_sites)
-
-    if "trigonal bipyramidal" in g:
-        return [
-            Site(0.0, -3.5, "plain"),
-            Site(2.8, -0.7, "plain"),
-            Site(1.7, 2.3, "plain"),
-            Site(-1.7, 2.3, "plain"),
-            Site(-2.8, -0.7, "plain"),
-        ][:n_sites]
-
-    if "square pyramidal" in g:
-        return [
-            Site(0.0, -3.2, "plain"),
-            Site(3.2, 0.0, "plain"),
-            Site(0.0, 3.2, "plain"),
-            Site(-3.2, 0.0, "plain"),
-            Site(2.2, -2.2, "wedge"),
-        ][:n_sites]
-
-    return _regular_polygon_sites(n_sites)
-
-
-def _polar_site(angle_degrees: float, radius: float, style: str) -> Site:
-    """Build one site from polar coordinates."""
-    angle = angle_degrees * pi / 180
-    return Site(radius * cos(angle), radius * sin(angle), style)
-
-
-def _cn4_depth_sites(n_sites: int) -> list[Site]:
-    """Return four sites at 90 degrees with two wedges and two dashes."""
-    return [
-        _polar_site(135, 3.4, "dash"),
-        _polar_site(45, 3.4, "dash"),
-        _polar_site(-45, 3.4, "wedge"),
-        _polar_site(-135, 3.4, "wedge"),
-    ][:n_sites]
-
-
-def _cn6_depth_sites(n_sites: int) -> list[Site]:
-    """Return six sites at 60 degrees with axial plain bonds."""
-    return [
-        _polar_site(90, 3.4, "plain"),
-        _polar_site(30, 3.4, "dash"),
-        _polar_site(-30, 3.4, "wedge"),
-        _polar_site(-90, 3.4, "plain"),
-        _polar_site(-150, 3.4, "wedge"),
-        _polar_site(150, 3.4, "dash"),
-    ][:n_sites]
-
-
-def _chelate_octahedral_sites(n_ligands: int) -> list[Site]:
-    """Return spread-out site pairs for tris-bidentate octahedral complexes."""
-    if n_ligands != 3:
-        return _coordination_sites("octahedral", n_ligands * 2)
-
-    return [
-        Site(-3.2, -1.8, "dash"),
-        Site(-1.2, -3.5, "plain"),
-        Site(3.2, -1.8, "plain"),
-        Site(3.2, 1.8, "wedge"),
-        Site(-1.2, 3.5, "plain"),
-        Site(-3.2, 1.8, "plain"),
-    ]
-
-
-def _tridentate_octahedral_sites(n_ligands: int) -> list[Site]:
-    """Return site triplets for bis-tridentate octahedral complexes."""
-    if n_ligands != 2:
-        return _coordination_sites("octahedral", n_ligands * 3)
-
-    radius = 3.4
-    angles = [150, 90, 30, -30, -90, -150]
-    styles = ["dash", "plain", "plain", "wedge", "plain", "plain"]
-
-    return [
-        Site(
-            radius * cos(angle * pi / 180),
-            radius * sin(angle * pi / 180),
-            style,
-        )
-        for angle, style in zip(angles, styles)
-    ]
-
-
-def _edta_octahedral_sites() -> list[Site]:
-    """Return a compact 60-degree octahedral projection for EDTA."""
-    radius = 1.65
-    return [
-        _polar_site(150, radius, "dash"),
-        _polar_site(90, radius, "plain"),
-        _polar_site(30, radius, "dash"),
-        _polar_site(-150, radius, "wedge"),
-        _polar_site(-90, radius, "plain"),
-        _polar_site(-30, radius, "wedge"),
-    ]
-
-
-def _should_use_chelate_layout(parsed: ParsedComplex, ligand_items: list[str], geometry: str) -> bool:
-    """Return True when a tris-bidentate octahedral layout will be clearer."""
-    if geometry.lower().strip() != "octahedral":
-        return False
-
-    if len(ligand_items) != 3:
-        return False
-
-    return all(parsed.ligand_denticity.get(ligand, 1) == 2 for ligand in ligand_items)
-
-
-def _should_use_tridentate_layout(parsed: ParsedComplex, ligand_items: list[str], geometry: str) -> bool:
-    """Return True when a bis-tridentate octahedral layout will be clearer."""
-    if geometry.lower().strip() != "octahedral":
-        return False
-
-    if len(ligand_items) != 2:
-        return False
-
-    return all(parsed.ligand_denticity.get(ligand, 1) == 3 for ligand in ligand_items)
-
-
-def _should_use_edta_layout(
-    parsed: ParsedComplex,
-    ligand_items: list[str],
-    geometry: str,
-) -> bool:
-    """Return True for the special one-ligand EDTA octahedral drawing."""
-    if geometry.lower().strip() != "octahedral":
-        return False
-
-    if len(ligand_items) != 1:
-        return False
-
-    ligand = ligand_items[0]
-    return ligand in {"EDTA", "edta"} and parsed.ligand_denticity.get(ligand) == 6
-
-
-def _regular_polygon_sites(n_sites: int, radius: float = 3.2) -> list[Site]:
-    """Fallback placement on a regular polygon."""
-    if n_sites <= 0:
-        return []
-
-    sites: list[Site] = []
-    for i in range(n_sites):
-        angle = -pi / 2 + 2 * pi * i / n_sites
-        sites.append(Site(radius * cos(angle), radius * sin(angle), "plain"))
-    return sites
-
-
-def _dist(x: float, y: float) -> float:
-    return sqrt(x * x + y * y)
-
-
-def _angle(x: float, y: float) -> float:
-    return atan2(y, x)
-
-
-def _max_distance_from_point(
-    coords: dict[int, tuple[float, float]],
-    center: tuple[float, float],
-) -> float:
-    """Return the maximum distance of any coordinate from center."""
-    if not coords:
-        return 1.0
-
-    return max(_dist(x - center[0], y - center[1]) for x, y in coords.values())
-
-
-def _rotate_point(x: float, y: float, theta: float) -> tuple[float, float]:
-    c = cos(theta)
-    s = sin(theta)
-    return (c * x - s * y, s * x + c * y)
-
-
-def _reflect_point_across_line(
-    point: tuple[float, float],
-    line_a: tuple[float, float],
-    line_b: tuple[float, float],
-) -> tuple[float, float]:
-    """Reflect one point across the line passing through line_a and line_b."""
-    px, py = point
-    ax, ay = line_a
-    bx, by = line_b
-    vx = bx - ax
-    vy = by - ay
-    length_sq = vx * vx + vy * vy
-    if length_sq == 0:
-        return point
-
-    t = ((px - ax) * vx + (py - ay) * vy) / length_sq
-    proj_x = ax + t * vx
-    proj_y = ay + t * vy
-    return (2 * proj_x - px, 2 * proj_y - py)
-
-
 def _make_ligand_mol(ligand_symbol: str) -> Chem.Mol:
     """Build one ligand molecule with 2D coordinates."""
     smiles = LIGAND_SMILES.get(ligand_symbol)
@@ -455,51 +121,27 @@ def _make_ligand_mol(ligand_symbol: str) -> Chem.Mol:
 def _copy_atom(atom: Chem.Atom, atom_label: str | None = None) -> Chem.Atom:
     """Copy atom attributes needed for drawing."""
     new_atom = Chem.Atom(atom.GetAtomicNum())
+    new_atom.SetIsAromatic(atom.GetIsAromatic())
     new_atom.SetFormalCharge(atom.GetFormalCharge())
+
+    if atom_label is not None:
+        new_atom.SetNumExplicitHs(0)
+        new_atom.SetNoImplicit(True)
+        new_atom.SetProp("atomLabel", atom_label)
+        return new_atom
+
     new_atom.SetNumExplicitHs(atom.GetNumExplicitHs())
     new_atom.SetNoImplicit(atom.GetNoImplicit())
-    new_atom.SetIsAromatic(atom.GetIsAromatic())
-    if atom_label is not None:
-        new_atom.SetProp("atomLabel", atom_label)
     return new_atom
 
 
-def _display_atom_label(
-    ligand_symbol: str,
-    atom_idx: int,
-    donor_indices: tuple[int, ...],
-    donor_anchors: dict[int, Site],
-) -> str | None:
-    """Return a custom visible label for donor atoms that RDKit would simplify."""
-    if atom_idx not in donor_indices:
-        return None
-
-    labels = LIGAND_DISPLAY_LABELS.get(ligand_symbol)
-    if labels is None:
-        return None
-
-    donor_first, donor_last = labels
-    anchor = donor_anchors.get(atom_idx)
-    if anchor is not None and anchor.x < 0:
-        return donor_last
-
-    return donor_first
-
-
-def _monodentate_label(
-    ligand_symbol: str,
-    anchor: Site,
-) -> str:
-    """Return a formula label with the donor side facing the metal."""
+def _monodentate_label(ligand_symbol: str, anchor: Site) -> str:
+    """Return a formula label with donor side facing the metal."""
     donor_first, donor_last = MONODENTATE_DISPLAY_LABELS.get(
         ligand_symbol,
         (ligand_symbol, ligand_symbol),
     )
-
-    if anchor.x < 0:
-        return donor_last
-
-    return donor_first
+    return donor_last if anchor.x < 0 else donor_first
 
 
 def _monodentate_label_atom(
@@ -522,6 +164,21 @@ def _monodentate_label_atom(
     return atom
 
 
+def _polydentate_donor_label(
+    ligand_symbol: str,
+    atom_idx: int,
+    anchor: Site,
+) -> str | None:
+    """Return donor label for polydentate ligands."""
+    ligand_labels = POLYDENTATE_DONOR_DISPLAY_LABELS.get(ligand_symbol, {})
+    labels = ligand_labels.get(atom_idx)
+    if labels is None:
+        return None
+
+    donor_first, donor_last = labels
+    return donor_last if anchor.x < 0 else donor_first
+
+
 def _get_2d_coords(mol: Chem.Mol) -> dict[int, tuple[float, float]]:
     """Return atom index to 2D coordinate mapping."""
     conf = mol.GetConformer()
@@ -529,22 +186,6 @@ def _get_2d_coords(mol: Chem.Mol) -> dict[int, tuple[float, float]]:
         i: (conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y)
         for i in range(mol.GetNumAtoms())
     }
-
-
-def _centroid(
-    coords: dict[int, tuple[float, float]],
-    exclude: set[int] | None = None,
-) -> tuple[float, float]:
-    """Centroid of all coordinates except optional excluded atoms."""
-    exclude = exclude or set()
-    points = [xy for i, xy in coords.items() if i not in exclude]
-    if not points:
-        return (0.0, 0.0)
-
-    return (
-        sum(point[0] for point in points) / len(points),
-        sum(point[1] for point in points) / len(points),
-    )
 
 
 def _match_donor_indices(
@@ -589,130 +230,33 @@ def _match_donor_indices(
     return tuple(matches[:denticity])
 
 
-def _transform_monodentate(
+def _is_interrupted_ligand_bond(
+    ligand_symbol: str,
+    begin_idx: int,
+    end_idx: int,
+) -> bool:
+    """Return True when a ligand bond should be drawn as interrupted."""
+    interrupted = INTERRUPTED_LIGAND_BONDS.get(ligand_symbol, set())
+    pair = tuple(sorted((begin_idx, end_idx)))
+    return pair in interrupted
+
+
+def _interrupted_gap_fraction(
     coords: dict[int, tuple[float, float]],
-    donor_idx: int,
-    anchor: Site,
-) -> dict[int, tuple[float, float]]:
-    """Place a monodentate ligand with donor atom on the coordination site."""
-    donor_x, donor_y = coords[donor_idx]
-    cx, cy = _centroid(coords, exclude={donor_idx})
+    begin_idx: int,
+    end_idx: int,
+) -> float:
+    """Return where an interrupted bond crosses the front vertical bond."""
+    x1, _ = coords[begin_idx]
+    x2, _ = coords[end_idx]
 
-    current_vx = cx - donor_x
-    current_vy = cy - donor_y
-    if _dist(current_vx, current_vy) < 1e-8:
-        current_vx, current_vy = 1.0, 0.0
+    if (x1 <= 0.0 <= x2) or (x2 <= 0.0 <= x1):
+        denom = x2 - x1
+        if abs(denom) > 1e-8:
+            fraction = (0.0 - x1) / denom
+            return max(0.15, min(0.85, fraction))
 
-    theta = _angle(anchor.x, anchor.y) - _angle(current_vx, current_vy)
-
-    new_coords: dict[int, tuple[float, float]] = {}
-    for idx, (x, y) in coords.items():
-        rx, ry = _rotate_point(x - donor_x, y - donor_y, theta)
-        new_coords[idx] = (rx + anchor.x, ry + anchor.y)
-
-    return new_coords
-
-
-def _transform_polydentate(
-    coords: dict[int, tuple[float, float]],
-    donor_indices: tuple[int, ...],
-    anchors: tuple[Site, ...],
-) -> dict[int, tuple[float, float]]:
-    """Place a polydentate ligand on multiple coordination sites."""
-    if len(donor_indices) != len(anchors):
-        raise ValueError("Number of donor indices and anchors must match.")
-
-    if len(donor_indices) == 1:
-        return _transform_monodentate(coords, donor_indices[0], anchors[0])
-
-    d1 = donor_indices[0]
-    d2 = donor_indices[-1]
-    a1 = anchors[0]
-    a2 = anchors[-1]
-
-    x1, y1 = coords[d1]
-    x2, y2 = coords[d2]
-
-    cur_mid_x = (x1 + x2) / 2
-    cur_mid_y = (y1 + y2) / 2
-    cur_vx = x2 - x1
-    cur_vy = y2 - y1
-    cur_len = _dist(cur_vx, cur_vy) or 1.0
-
-    tar_mid_x = (a1.x + a2.x) / 2
-    tar_mid_y = (a1.y + a2.y) / 2
-    tar_vx = a2.x - a1.x
-    tar_vy = a2.y - a1.y
-    tar_len = _dist(tar_vx, tar_vy) or 1.0
-
-    theta = _angle(tar_vx, tar_vy) - _angle(cur_vx, cur_vy)
-    scale = tar_len / cur_len
-
-    new_coords: dict[int, tuple[float, float]] = {}
-    for idx, (x, y) in coords.items():
-        x0 = (x - cur_mid_x) * scale
-        y0 = (y - cur_mid_y) * scale
-        xr, yr = _rotate_point(x0, y0, theta)
-        new_coords[idx] = (xr + tar_mid_x, yr + tar_mid_y)
-
-    ligand_radius = _max_distance_from_point(new_coords, (tar_mid_x, tar_mid_y))
-    target_radius = 3.2 if len(donor_indices) >= 3 else 2.8
-    if len(donor_indices) < 3 and ligand_radius > target_radius:
-        shrink = target_radius / ligand_radius
-        new_coords = {
-            idx: (
-                tar_mid_x + (x - tar_mid_x) * shrink,
-                tar_mid_y + (y - tar_mid_y) * shrink,
-            )
-            for idx, (x, y) in new_coords.items()
-        }
-
-    centroid = _centroid(new_coords, exclude=set(donor_indices))
-    outward_x = tar_mid_x
-    outward_y = tar_mid_y
-    ligand_side_x = centroid[0] - tar_mid_x
-    ligand_side_y = centroid[1] - tar_mid_y
-
-    if ligand_side_x * outward_x + ligand_side_y * outward_y < 0:
-        line_a = (a1.x, a1.y)
-        line_b = (a2.x, a2.y)
-        new_coords = {
-            idx: _reflect_point_across_line(point, line_a, line_b)
-            for idx, point in new_coords.items()
-        }
-
-    return new_coords
-
-
-def _transform_edta(anchors: tuple[Site, ...]) -> dict[int, tuple[float, float]]:
-    """Place EDTA in a wrapped hexadentate drawing around the metal."""
-    if len(anchors) != 6:
-        raise ValueError("EDTA layout requires six coordination sites.")
-
-    n_top, o_top, o_left_bottom, n_bottom, o_bottom, o_right = anchors
-
-    return {
-        0: (n_top.x, n_top.y),
-        1: (-0.95, 1.55),
-        2: (-0.05, 1.85),
-        3: (0.05, 2.65),
-        4: (o_top.x, o_top.y),
-        5: (-1.85, 0.45),
-        6: (-1.90, -0.25),
-        7: (-2.70, -0.40),
-        8: (o_left_bottom.x, o_left_bottom.y),
-        9: (-2.05, -0.15),
-        10: (-2.05, -0.95),
-        11: (n_bottom.x, n_bottom.y),
-        12: (-0.95, -1.55),
-        13: (-0.05, -1.85),
-        14: (0.05, -2.65),
-        15: (o_bottom.x, o_bottom.y),
-        16: (0.35, -0.75),
-        17: (1.05, -0.35),
-        18: (1.80, -0.85),
-        19: (o_right.x, o_right.y),
-    }
+    return 0.5
 
 
 def build_coordination_mol(
@@ -724,14 +268,15 @@ def build_coordination_mol(
     geometry = geometry_override or get_geometry(parsed)
     ligand_items = _expand_ligands(parsed)
     n_sites = sum(parsed.ligand_denticity.get(lig, 1) for lig in ligand_items)
-    if _should_use_edta_layout(parsed, ligand_items, geometry):
-        sites = _edta_octahedral_sites()
-    elif _should_use_tridentate_layout(parsed, ligand_items, geometry):
-        sites = _tridentate_octahedral_sites(len(ligand_items))
-    elif _should_use_chelate_layout(parsed, ligand_items, geometry):
-        sites = _chelate_octahedral_sites(len(ligand_items))
+
+    if should_use_edta_layout(parsed, ligand_items, geometry):
+        sites = edta_octahedral_sites()
+    elif should_use_tridentate_layout(parsed, ligand_items, geometry):
+        sites = tridentate_octahedral_sites(len(ligand_items))
+    elif should_use_chelate_layout(parsed, ligand_items, geometry):
+        sites = chelate_octahedral_sites(len(ligand_items))
     else:
-        sites = _coordination_sites(geometry, n_sites)
+        sites = coordination_sites(geometry, n_sites)
 
     rw = Chem.RWMol()
     metal_atom = Chem.Atom(parsed.metal)
@@ -743,13 +288,17 @@ def build_coordination_mol(
 
     for ligand_symbol in ligand_items:
         denticity_from_parser = parsed.ligand_denticity.get(ligand_symbol, 1)
+
+        # Compact labels for monodentate ligands
         if (
             denticity_from_parser == 1
             and ligand_symbol in ABBREVIATED_MONODENTATE_LIGANDS
         ):
             anchors = tuple(sites[site_cursor: site_cursor + 1])
             if len(anchors) != 1:
-                raise ValueError(f"Not enough coordination sites for '{ligand_symbol}'.")
+                raise ValueError(
+                    f"Not enough coordination sites for '{ligand_symbol}'."
+                )
             site_cursor += 1
 
             anchor = anchors[0]
@@ -767,6 +316,7 @@ def build_coordination_mol(
             global_coords[ligand_idx] = (anchor.x, anchor.y)
             continue
 
+        # Full ligand drawing
         lig_mol = _make_ligand_mol(ligand_symbol)
         lig_coords = _get_2d_coords(lig_mol)
         donor_indices = _match_donor_indices(parsed, ligand_symbol, lig_mol)
@@ -777,28 +327,59 @@ def build_coordination_mol(
             raise ValueError(f"Not enough coordination sites for '{ligand_symbol}'.")
         site_cursor += denticity
 
-        if ligand_symbol in {"EDTA", "edta"} and denticity == 6:
-            transformed = _transform_edta(anchors)
+        if ligand_symbol == "acac" and denticity == 2:
+            transformed = transform_acac(
+                lig_coords,
+                donor_indices,
+                anchors,
+            )
+        elif ligand_symbol in {"EDTA", "edta"} and denticity == 6:
+            transformed = transform_edta(anchors)
+        elif denticity == 1:
+            transformed = transform_monodentate(
+                lig_coords,
+                donor_indices[0],
+                anchors[0],
+            )
         else:
-            transformed = _transform_polydentate(lig_coords, donor_indices, anchors)
+            transformed = transform_polydentate(
+                lig_coords,
+                donor_indices,
+                anchors,
+                shrink_large_ligand=ligand_symbol not in {"acac", "bipy", "bpy"},
+            )
+
         donor_anchors = dict(zip(donor_indices, anchors))
 
         idx_map: dict[int, int] = {}
         for atom in lig_mol.GetAtoms():
-            atom_label = _display_atom_label(
-                ligand_symbol,
-                atom.GetIdx(),
-                donor_indices,
-                donor_anchors,
-            )
-            idx_map[atom.GetIdx()] = rw.AddAtom(_copy_atom(atom, atom_label))
+            local_idx = atom.GetIdx()
+            atom_label = None
+
+            if local_idx in donor_indices:
+                atom_label = _polydentate_donor_label(
+                    ligand_symbol=ligand_symbol,
+                    atom_idx=local_idx,
+                    anchor=donor_anchors[local_idx],
+                )
+
+            idx_map[local_idx] = rw.AddAtom(_copy_atom(atom, atom_label=atom_label))
 
         for bond in lig_mol.GetBonds():
-            rw.AddBond(
-                idx_map[bond.GetBeginAtomIdx()],
-                idx_map[bond.GetEndAtomIdx()],
-                bond.GetBondType(),
-            )
+            begin_idx = bond.GetBeginAtomIdx()
+            end_idx = bond.GetEndAtomIdx()
+            begin_global = idx_map[begin_idx]
+            end_global = idx_map[end_idx]
+
+            rw.AddBond(begin_global, end_global, bond.GetBondType())
+
+            new_bond = rw.GetBondBetweenAtoms(begin_global, end_global)
+            if _is_interrupted_ligand_bond(ligand_symbol, begin_idx, end_idx):
+                new_bond.SetBoolProp("_coordchem_interrupted", True)
+                new_bond.SetDoubleProp(
+                    "_coordchem_gap_fraction",
+                    _interrupted_gap_fraction(transformed, begin_idx, end_idx),
+                )
 
         for donor_local_idx, anchor in zip(donor_indices, anchors):
             donor_global_idx = idx_map[donor_local_idx]
@@ -826,6 +407,22 @@ def build_coordination_mol(
     return mol
 
 
+def _interrupted_bond_gap_fractions(mol: Chem.Mol) -> dict[int, float]:
+    """Return interrupted bond indices and their SVG gap positions."""
+    gaps: dict[int, float] = {}
+    for bond in mol.GetBonds():
+        if not bond.HasProp("_coordchem_interrupted"):
+            continue
+
+        gap = 0.5
+        if bond.HasProp("_coordchem_gap_fraction"):
+            gap = bond.GetDoubleProp("_coordchem_gap_fraction")
+
+        gaps[bond.GetIdx()] = gap
+
+    return gaps
+
+
 def _geometry_options(geometry: str) -> list[str]:
     """Split ambiguous geometry labels into drawable alternatives."""
     if " or " not in geometry:
@@ -842,12 +439,76 @@ def _geometry_options(geometry: str) -> list[str]:
     return options or [geometry]
 
 
-def _add_svg_labels(
-    svg: str,
-    size: int,
-    title: str | None,
-) -> str:
-    """Add a full white background and an optional centered title."""
+def _get_name_module():
+    """Load name2.py as the source of naming conventions."""
+    try:
+        return import_module("..name2", package=__package__)
+    except Exception:
+        return None
+
+
+def _roman_numeral(value: int | None) -> str:
+    """Return a Roman numeral using name2.py conventions."""
+    name_module = _get_name_module()
+    roman_number = getattr(name_module, "ROMAN_NUMBER", {}) if name_module else {}
+    numerals = {number: roman for roman, number in roman_number.items()}
+    numerals[0] = "0"
+    return numerals.get(value, str(value))
+
+
+def _ligand_count_prefix(count: int) -> str:
+    """Return a coordination prefix using name2.py prefix values."""
+    preferred_prefixes = {
+        1: "",
+        2: "di",
+        3: "tri",
+        4: "tetra",
+        5: "penta",
+        6: "hexa",
+        7: "hepta",
+        8: "octa",
+    }
+
+    prefix = preferred_prefixes.get(count)
+    if prefix is None:
+        return f"{count}-"
+
+    if count == 1:
+        return prefix
+
+    name_module = _get_name_module()
+    name2_prefixes = getattr(name_module, "PREFIXE", {}) if name_module else {}
+    if name2_prefixes.get(prefix) == count:
+        return prefix
+
+    return f"{count}-"
+
+
+def _metal_name(parsed: ParsedComplex) -> str:
+    """Return the metal name, using -ate for anionic complex ions."""
+    name_module = _get_name_module()
+    if name_module is None:
+        return parsed.metal
+
+    METALS_NAME = getattr(name_module, "METALS_NAME", {})
+    cation_name, anion_name = METALS_NAME.get(parsed.metal, (parsed.metal, parsed.metal))
+    return anion_name if parsed.complex_charge < 0 else cation_name
+
+
+def _coordination_compound_name(parsed: ParsedComplex) -> str:
+    """Build a compact name from parser-enriched data and name2.py tables."""
+    ligand_parts: list[str] = []
+    for ligand, count in parsed.ligands.items():
+        ligand_name = parsed.ligand_names.get(ligand, ligand)
+        ligand_parts.append(f"{_ligand_count_prefix(count)}{ligand_name}")
+
+    metal = _metal_name(parsed)
+    oxidation = _roman_numeral(parsed.oxidation_state)
+    return f"{''.join(ligand_parts)}{metal}({oxidation})"
+
+
+def _add_svg_labels(svg: str, size: int, title: str | None) -> str:
+    """Add white background and optional centered title."""
     svg = svg.replace(
         "<!-- END OF HEADER -->",
         (
@@ -869,6 +530,58 @@ def _add_svg_labels(
     return svg
 
 
+def _split_svg_bond_path(
+    path_element: str,
+    gap_center_fraction: float = 0.5,
+    gap_fraction: float = 0.18,
+) -> str:
+    """Split a simple SVG bond path into two pieces with a local gap."""
+    match = re.search(
+        r"d='M ([\d.-]+),([\d.-]+) L ([\d.-]+),([\d.-]+)'",
+        path_element,
+    )
+    if match is None:
+        return path_element
+
+    x1, y1, x2, y2 = (float(value) for value in match.groups())
+    gap_center_fraction = max(0.0, min(1.0, gap_center_fraction))
+    mid_x = x1 + (x2 - x1) * gap_center_fraction
+    mid_y = y1 + (y2 - y1) * gap_center_fraction
+    dx = (x2 - x1) * gap_fraction / 2
+    dy = (y2 - y1) * gap_fraction / 2
+
+    left_end = (mid_x - dx, mid_y - dy)
+    right_start = (mid_x + dx, mid_y + dy)
+
+    first_d = f"d='M {x1:.1f},{y1:.1f} L {left_end[0]:.1f},{left_end[1]:.1f}'"
+    second_d = f"d='M {right_start[0]:.1f},{right_start[1]:.1f} L {x2:.1f},{y2:.1f}'"
+
+    first = re.sub(r"d='M [^']+'", first_d, path_element, count=1)
+    second = re.sub(r"d='M [^']+'", second_d, path_element, count=1)
+    return first + "\n" + second
+
+
+def _add_interrupted_bond_styles(svg: str, mols: list[Chem.Mol]) -> str:
+    """Render selected bonds with a small gap where they pass behind."""
+    interrupted: dict[int, float] = {}
+    for mol in mols:
+        interrupted.update(_interrupted_bond_gap_fractions(mol))
+
+    for bond_idx, gap_center_fraction in interrupted.items():
+        pattern = re.compile(
+            rf"<path class='bond-{bond_idx} atom-\d+ atom-\d+'[^>]*/>"
+        )
+        svg = pattern.sub(
+            lambda match: _split_svg_bond_path(
+                match.group(0),
+                gap_center_fraction=gap_center_fraction,
+            ),
+            svg,
+        )
+
+    return svg
+
+
 def diagram_2d_svg(
     complex_input: str | ParsedComplex,
     size: int = 700,
@@ -881,7 +594,10 @@ def diagram_2d_svg(
 
     parsed = parse_complex_input(complex_input)
     geometry = get_geometry(parsed)
+    display_title = title if title is not None else _coordination_compound_name(parsed)
     geometry_options = _geometry_options(geometry)
+    ligand_items = _expand_ligands(parsed)
+    is_edta_drawing = should_use_edta_layout(parsed, ligand_items, geometry)
     mols = [
         build_coordination_mol(parsed, geometry_override=option)
         for option in geometry_options
@@ -892,11 +608,12 @@ def diagram_2d_svg(
     else:
         panel_width = size // len(mols)
         drawer = rdMolDraw2D.MolDraw2DSVG(size, size, panel_width, size)
+
     options = drawer.drawOptions()
     options.useBWAtomPalette()
     options.clearBackground = True
     options.bondLineWidth = 2.2
-    options.fixedBondLength = 32
+    options.fixedBondLength = 42 if is_edta_drawing else 32
     options.addStereoAnnotation = False
     options.prepareMolsBeforeDrawing = False
     options.legendFontSize = 18
@@ -904,11 +621,12 @@ def diagram_2d_svg(
     if len(mols) == 1:
         drawer.DrawMolecule(mols[0], legend=geometry, confId=0)
     else:
-        legends = geometry_options
-        drawer.DrawMolecules(mols, legends=legends, confIds=[0] * len(mols))
+        drawer.DrawMolecules(mols, legends=geometry_options, confIds=[0] * len(mols))
 
     drawer.FinishDrawing()
-    return _add_svg_labels(drawer.GetDrawingText(), size=size, title=title)
+    svg = drawer.GetDrawingText()
+    svg = _add_interrupted_bond_styles(svg, mols)
+    return _add_svg_labels(svg, size=size, title=display_title)
 
 
 def save_diagram_2d(
