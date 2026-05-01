@@ -1,5 +1,5 @@
 """
-coordchem/database/ir_bands.py
+data/database/ir_ra_bands.py
 -------------------------------
 SQLite database for IR (and Raman) spectral band data.
 
@@ -13,7 +13,7 @@ All wavenumber values in cm⁻¹ at ~298 K.
 
 Usage
 -----
-    from coordchem.database.ir_bands import IRBandDB
+    from data.database.ir_ra_bands import IRBandDB
 
     db = IRBandDB()                      # uses in-memory DB (no file needed)
     bands = db.get_bands("CN")           # all IR bands for cyanide
@@ -186,6 +186,13 @@ SEED_BANDS = [
     # O-bonded nitrito (M-ONO): different pattern — diagnostic!
     ("ONO", "terminal", "any", "IR",   1400, 1500, "strong",      "N=O stretch (nitrito)",True,  False, "Nakamoto Vol.2 p.260"),
     ("ONO", "terminal", "any", "IR",   1000, 1100, "medium",      "N–O stretch (nitrito)",True,  False, "Nakamoto Vol.2 p.260"),
+    # Raman bands for NO2 (Nakamoto Vol.2, pp. 253–268)
+    ("NO2", "free",     "any", "Raman", 1230, 1260, "strong",      "N=O asym. stretch",          False, True, "Nakamoto Vol.2 p.253"),
+    ("NO2", "free",     "any", "Raman", 1310, 1340, "strong",      "N=O sym. stretch",           False, True, "Nakamoto Vol.2 p.253"),
+    ("NO2", "terminal", "any", "Raman", 1300, 1430, "medium",      "N=O asym. stretch",          False, True, "Nakamoto Vol.2 p.256"),
+    ("NO2", "terminal", "any", "Raman", 1290, 1340, "strong",      "N=O sym. stretch",           False, True, "Nakamoto Vol.2 p.256"),
+    ("ONO", "terminal", "any", "Raman", 1400, 1500, "medium",      "N=O stretch (nitrito)",      False, True, "Nakamoto Vol.2 p.260"),
+    ("ONO", "terminal", "any", "Raman", 1000, 1100, "strong",      "N–O stretch (nitrito)",      False, True, "Nakamoto Vol.2 p.260"),
 
     # =========================================================================
     # THIOCYANATE  SCN⁻  (Nakamoto Vol.2, pp. 269–285)
@@ -196,6 +203,13 @@ SEED_BANDS = [
     # N-bonded (thiocyanato-N): higher C≡N frequency
     ("NCS", "terminal", "any", "IR",   2100, 2160, "strong",      "C≡N stretch (N-bond)", True,  False, "Nakamoto Vol.2 p.274"),
     ("NCS", "terminal", "any", "IR",    840,  860, "medium",      "C–S stretch",          True,  False, "Nakamoto Vol.2 p.275"),
+    # Raman bands for SCN/NCS (Nakamoto Vol.2, pp. 269–285)
+    ("SCN", "terminal", "any", "Raman", 2050, 2100, "strong",      "C≡N stretch (S-bond)",       False, True, "Nakamoto Vol.2 p.272"),
+    ("SCN", "terminal", "any", "Raman",  690,  720, "very strong", "C–S stretch",                False, True, "Nakamoto Vol.2 p.273"),
+    ("SCN", "terminal", "any", "Raman",  440,  510, "medium",      "M–S stretch",                False, True, "Nakamoto Vol.2 p.273"),
+    ("NCS", "terminal", "any", "Raman", 2100, 2160, "strong",      "C≡N stretch (N-bond)",       False, True, "Nakamoto Vol.2 p.274"),
+    ("NCS", "terminal", "any", "Raman",  840,  860, "strong",      "C–S stretch",                False, True, "Nakamoto Vol.2 p.275"),
+    ("NCS", "terminal", "any", "Raman",  300,  420, "medium",      "M–N stretch",                False, True, "Nakamoto Vol.2 p.275"),
 
     # =========================================================================
     # NITROSYL  NO   (Nakamoto Vol.2, pp. 230–252)
@@ -204,6 +218,10 @@ SEED_BANDS = [
     ("NO",  "terminal", "any", "IR",   1650, 1900, "very strong", "N≡O stretch (linear)", True,  False, "Nakamoto Vol.2 p.232"),
     # Bent NO (1-electron donor): lower frequency
     ("NO",  "terminal", "any", "IR",   1520, 1650, "very strong", "N=O stretch (bent)",   True,  False, "Nakamoto Vol.2 p.235"),
+    # Raman bands for NO (Nakamoto Vol.2, pp. 230–252)
+    ("NO",  "terminal", "any", "Raman", 1650, 1900, "strong",      "N≡O stretch (linear)",       False, True, "Nakamoto Vol.2 p.232"),
+    ("NO",  "terminal", "any", "Raman", 1520, 1650, "medium",      "N=O stretch (bent)",         False, True, "Nakamoto Vol.2 p.235"),
+    ("NO",  "terminal", "any", "Raman",  450,  600, "strong",      "M–N stretch",                False, True, "Nakamoto Vol.2 p.237"),
 
     # =========================================================================
     # ETHYLENEDIAMINE  en  (Nakamoto Vol.2, pp. 69–77)
@@ -231,6 +249,12 @@ SEED_BANDS = [
     ("acac","chelate",  "any", "IR",   1570, 1610, "strong",      "C=C stretch",          True,  False, "Nakamoto Vol.2 p.197"),
     ("acac","chelate",  "any", "IR",   2850, 3000, "medium",      "C–H stretch",          True,  False, "Nakamoto Vol.2 p.198"),
     ("acac","chelate",  "any", "IR",    420,  470, "medium",      "M–O stretch",          True,  False, "Nakamoto Vol.2 p.199"),
+    # Raman bands for acac (Nakamoto Vol.2, pp. 195–214)
+    ("acac","chelate",  "any", "Raman", 1510, 1530, "strong",      "C=O / C=C stretch",          False, True, "Nakamoto Vol.2 p.197"),
+    ("acac","chelate",  "any", "Raman", 1570, 1610, "very strong", "C=C stretch",                False, True, "Nakamoto Vol.2 p.197"),
+    ("acac","chelate",  "any", "Raman", 2850, 3000, "medium",      "C–H stretch",                False, True, "Nakamoto Vol.2 p.198"),
+    ("acac","chelate",  "any", "Raman",  420,  470, "strong",      "M–O stretch",                False, True, "Nakamoto Vol.2 p.199"),
+    ("acac","chelate",  "any", "Raman",  260,  320, "medium",      "chelate ring deformation",   False, True, "Nakamoto Vol.2 p.200"),
 
     # =========================================================================
     # BROMIDE  Br⁻
@@ -251,6 +275,11 @@ SEED_BANDS = [
     ("OH",  "terminal", "any", "IR",   3550, 3700, "strong",      "O–H stretch",          True,  False, "Nakamoto Vol.2 p.45"),
     ("OH",  "bridging", "any", "IR",   3200, 3500, "strong broad","O–H stretch (bridg.)", True,  False, "Nakamoto Vol.2 p.46"),
     ("OH",  "terminal", "any", "IR",    900, 1050, "medium",      "M–O–H bend",           True,  False, "Nakamoto Vol.2 p.46"),
+    # Raman bands for OH (Nakamoto Vol.2, pp. 45–48)
+    ("OH",  "terminal", "any", "Raman", 3550, 3700, "strong",      "O–H stretch",                False, True, "Nakamoto Vol.2 p.45"),
+    ("OH",  "bridging", "any", "Raman", 3200, 3500, "medium",      "O–H stretch (bridg.)",       False, True, "Nakamoto Vol.2 p.46"),
+    ("OH",  "terminal", "any", "Raman",  900, 1050, "medium",      "M–O–H bend",                 False, True, "Nakamoto Vol.2 p.46"),
+    ("OH",  "terminal", "any", "Raman",  300,  450, "strong",      "M–O stretch",                False, True, "Nakamoto Vol.2 p.47"),
 
     # =========================================================================
     # AZIDE  N3⁻
@@ -258,6 +287,11 @@ SEED_BANDS = [
     ("N3",  "terminal", "any", "IR",   2000, 2100, "very strong", "N=N=N asym. stretch",  True,  False, "Nakamoto Vol.2 p.287"),
     ("N3",  "terminal", "any", "Raman",1340, 1380, "strong",      "N=N=N sym. stretch",   False, True,  "Nakamoto Vol.2 p.287"),
     ("N3",  "bridging", "any", "IR",   1990, 2060, "strong",      "N=N=N stretch (bridg)",True,  False, "Nakamoto Vol.2 p.289"),
+    # Raman bands for N3 (Nakamoto Vol.2, pp. 287–295)
+    ("N3",  "terminal", "any", "Raman", 2000, 2100, "medium",      "N=N=N asym. stretch",        False, True, "Nakamoto Vol.2 p.287"),
+    ("N3",  "terminal", "any", "Raman", 1340, 1380, "very strong", "N=N=N sym. stretch",         False, True, "Nakamoto Vol.2 p.287"),
+    ("N3",  "terminal", "any", "Raman",  540,  660, "strong",      "N=N=N bend",                 False, True, "Nakamoto Vol.2 p.288"),
+    ("N3",  "bridging", "any", "Raman", 1990, 2060, "medium",      "N=N=N stretch (bridg.)",     False, True, "Nakamoto Vol.2 p.289"),
 
     # =========================================================================
     # PYRIDINE  py  (Nakamoto Vol.2, pp. 302–315)
@@ -265,6 +299,12 @@ SEED_BANDS = [
     ("py",  "terminal", "any", "IR",   1595, 1620, "medium",      "C=C/C=N ring stretch", True,  False, "Nakamoto Vol.2 p.304"),
     ("py",  "terminal", "any", "IR",   3000, 3100, "medium",      "C–H stretch",          True,  False, "Nakamoto Vol.2 p.303"),
     ("py",  "terminal", "any", "IR",    400,  450, "medium",      "M–N stretch",          True,  False, "Nakamoto Vol.2 p.306"),
+    # Raman bands for py (Nakamoto Vol.2, pp. 302–315)
+    ("py",  "terminal", "any", "Raman", 1595, 1620, "very strong", "C=C/C=N ring stretch",       False, True, "Nakamoto Vol.2 p.304"),
+    ("py",  "terminal", "any", "Raman", 1200, 1230, "strong",      "C–H in-plane bend",          False, True, "Nakamoto Vol.2 p.305"),
+    ("py",  "terminal", "any", "Raman",  990, 1010, "very strong", "ring breathing mode",        False, True, "Nakamoto Vol.2 p.305"),
+    ("py",  "terminal", "any", "Raman",  600,  660, "strong",      "ring deformation",           False, True, "Nakamoto Vol.2 p.306"),
+    ("py",  "terminal", "any", "Raman",  400,  450, "medium",      "M–N stretch",                False, True, "Nakamoto Vol.2 p.306"),
 
     # =========================================================================
     # DMSO  (Nakamoto Vol.2, pp. 316–325)
@@ -273,7 +313,12 @@ SEED_BANDS = [
     ("dmso","terminal", "any", "IR",    900, 1000, "very strong", "S=O stretch (S-bond)", True,  False, "Nakamoto Vol.2 p.318"),
     # O-bonded DMSO: S=O stretch moves to higher frequency
     ("dmso","terminal", "any", "IR",   1030, 1070, "very strong", "S=O stretch (O-bond)", True,  False, "Nakamoto Vol.2 p.319"),
-
+    # Raman bands for dmso (Nakamoto Vol.2, pp. 316–325)
+    ("dmso","terminal", "any", "Raman",  900, 1000, "strong",      "S=O stretch (S-bond)",       False, True, "Nakamoto Vol.2 p.318"),
+    ("dmso","terminal", "any", "Raman", 1030, 1070, "strong",      "S=O stretch (O-bond)",       False, True, "Nakamoto Vol.2 p.319"),
+    ("dmso","terminal", "any", "Raman",  670,  720, "very strong", "C–S stretch",                False, True, "Nakamoto Vol.2 p.320"),
+    ("dmso","terminal", "any", "Raman",  300,  400, "strong",      "M–S or M–O stretch",         False, True, "Nakamoto Vol.2 p.321"),
+    
     # =========================================================================
     # TRIPHENYLPHOSPHINE  PPh3
     # =========================================================================
@@ -295,8 +340,7 @@ class IRBandDB:
     ----------
     db_path : str, optional
         Path to the SQLite file. Defaults to ':memory:' (in-memory).
-        Pass a file path to persist the database on disk:
-        e.g. IRBandDB('coordchem/database/bands.db')
+
     """
 
     def __init__(self, db_path: str = ":memory:"):
@@ -312,7 +356,7 @@ class IRBandDB:
 
     def _create_table(self) -> None:
         self._conn.execute("""
-            CREATE TABLE IF NOT EXISTS ir_bands (
+            CREATE TABLE IF NOT EXISTS ir_ra_bands (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 ligand          TEXT    NOT NULL,
                 coordination    TEXT    NOT NULL,
@@ -328,20 +372,20 @@ class IRBandDB:
             )
         """)
         self._conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_ligand ON ir_bands(ligand)"
+            "CREATE INDEX IF NOT EXISTS idx_ligand ON ir_ra_bands(ligand)"
         )
         self._conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_spectrum ON ir_bands(spectrum_type)"
+            "CREATE INDEX IF NOT EXISTS idx_spectrum ON ir_ra_bands(spectrum_type)"
         )
         self._conn.commit()
 
     def _seed(self) -> None:
         """Insert seed data only if the table is empty."""
-        count = self._conn.execute("SELECT COUNT(*) FROM ir_bands").fetchone()[0]
+        count = self._conn.execute("SELECT COUNT(*) FROM ir_ra_bands").fetchone()[0]
         if count > 0:
             return
         self._conn.executemany("""
-            INSERT INTO ir_bands
+            INSERT INTO ir_ra_bands
               (ligand, coordination, metal, spectrum_type,
                wn_min, wn_max, intensity, assignment,
                ir_active, raman_active, source)
@@ -383,7 +427,7 @@ class IRBandDB:
             Sorted by wavenumber center, most specific match first.
         """
         query  = """
-            SELECT * FROM ir_bands
+            SELECT * FROM ir_ra_bands
             WHERE ligand = ?
               AND spectrum_type = ?
         """
@@ -414,7 +458,7 @@ class IRBandDB:
     def get_all_ligands(self) -> list[str]:
         """Return all ligand symbols present in the database."""
         rows = self._conn.execute(
-            "SELECT DISTINCT ligand FROM ir_bands ORDER BY ligand"
+            "SELECT DISTINCT ligand FROM ir_ra_bands ORDER BY ligand"
         ).fetchall()
         return [r[0] for r in rows]
 
@@ -429,7 +473,7 @@ class IRBandDB:
         Useful for identifying what ligand a mystery peak might belong to.
         """
         rows = self._conn.execute("""
-            SELECT * FROM ir_bands
+            SELECT * FROM ir_ra_bands
             WHERE spectrum_type = ?
               AND wn_max >= ?
               AND wn_min <= ?
@@ -453,7 +497,7 @@ class IRBandDB:
     ) -> None:
         """Add a custom band entry to the database."""
         self._conn.execute("""
-            INSERT INTO ir_bands
+            INSERT INTO ir_ra_bands
               (ligand, coordination, metal, spectrum_type,
                wn_min, wn_max, intensity, assignment,
                ir_active, raman_active, source)

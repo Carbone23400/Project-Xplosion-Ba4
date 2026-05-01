@@ -7,7 +7,7 @@ Run with:  python -m pytest tests/test_ir_bands.py -v
 """
 
 import pytest
-from src.coordchem.database.ir_bands import IRBandDB, BandRecord
+from data.database.ir_ra_bands import IRBandDB, BandRecord
 
 
 @pytest.fixture
@@ -350,7 +350,7 @@ class TestParserIntegration:
         Every ligand in the parser's KNOWN_LIGANDS table should have
         at least some entry in the IR database (or at least not crash).
         """
-        from coordchem.parser import KNOWN_LIGANDS
+        from src.coordchem.parser import KNOWN_LIGANDS
         db_ligands = set(db.get_all_ligands())
         parser_ligands = set(KNOWN_LIGANDS.keys())
 
@@ -361,7 +361,7 @@ class TestParserIntegration:
 
     def test_full_pipeline_hexacyanoferrate(self, db):
         """Parse [Fe(CN)6]4- then look up its IR bands."""
-        from coordchem.parser import parse_formula
+        from src.coordchem.parser import parse_formula
         result = parse_formula("[Fe(CN)6]4-")
 
         all_bands = []
@@ -380,7 +380,7 @@ class TestParserIntegration:
 
     def test_full_pipeline_cisplatin(self, db):
         """Parse [PtCl2(NH3)2] then look up its IR bands."""
-        from coordchem.parser import parse_formula
+        from src.coordchem.parser import parse_formula
         result = parse_formula("[PtCl2(NH3)2]")
 
         all_bands = []
