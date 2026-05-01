@@ -1,5 +1,7 @@
 # give the information about mol from its name
 
+#run with python -m coordchem.name2
+
 import re
 
 from .parser import KNOWN_LIGANDS
