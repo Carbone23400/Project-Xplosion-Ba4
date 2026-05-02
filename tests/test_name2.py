@@ -8,7 +8,7 @@ Run with: python -m pytest tests/test_name2.py -v
 
 import pytest
 
-from src.coordchem.name2 import (
+from coordchem.name2 import (
     extract_complex_charge_from_name,
     ligand_data,
     metal_data,
