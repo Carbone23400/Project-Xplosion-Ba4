@@ -211,6 +211,64 @@ def transform_acac(
     return adjusted
 
 
+def transform_oxalate(
+    coords: dict[int, tuple[float, float]],
+    donor_indices: tuple[int, ...],
+    anchors: tuple[Site, ...],
+) -> dict[int, tuple[float, float]]:
+    """Place oxalate with both carbonyl bonds pointing away from the metal."""
+    if len(donor_indices) != 2 or len(anchors) != 2:
+        return transform_polydentate(coords, donor_indices, anchors)
+
+    a1, a2 = anchors
+    mid_x = (a1.x + a2.x) / 2
+    mid_y = (a1.y + a2.y) / 2
+    outward_len = dist(mid_x, mid_y)
+    if outward_len < 1e-8:
+        outward_x, outward_y = 0.0, 1.0
+    else:
+        outward_x = mid_x / outward_len
+        outward_y = mid_y / outward_len
+
+    chord_x = a2.x - a1.x
+    chord_y = a2.y - a1.y
+    chord_len = dist(chord_x, chord_y) or 1.0
+    along_x = chord_x / chord_len
+    along_y = chord_y / chord_len
+
+    carbon_out = 1.34
+    carbon_inset = max(0.0, (chord_len - 1.85) / 2)
+    carbonyl_out = 0.94
+
+    c1 = (
+        a1.x + outward_x * carbon_out + along_x * carbon_inset,
+        a1.y + outward_y * carbon_out + along_y * carbon_inset,
+    )
+    c2 = (
+        a2.x + outward_x * carbon_out - along_x * carbon_inset,
+        a2.y + outward_y * carbon_out - along_y * carbon_inset,
+    )
+    a1_out_len = dist(a1.x, a1.y) or 1.0
+    a2_out_len = dist(a2.x, a2.y) or 1.0
+    a1_out_x = a1.x / a1_out_len
+    a1_out_y = a1.y / a1_out_len
+    a2_out_x = a2.x / a2_out_len
+    a2_out_y = a2.y / a2_out_len
+
+    o1 = (c1[0] + a1_out_x * carbonyl_out, c1[1] + a1_out_y * carbonyl_out)
+    o2 = (c2[0] + a2_out_x * carbonyl_out, c2[1] + a2_out_y * carbonyl_out)
+
+    d1, d2 = donor_indices
+    adjusted = dict(coords)
+    adjusted[d1] = (a1.x, a1.y)
+    adjusted[1] = c1
+    adjusted[2] = o1
+    adjusted[3] = c2
+    adjusted[4] = o2
+    adjusted[d2] = (a2.x, a2.y)
+    return adjusted
+
+
 def transform_edta(anchors: tuple[Site, ...]) -> dict[int, tuple[float, float]]:
     """Place EDTA in a wrapped hexadentate drawing around the metal."""
     if len(anchors) != 6:

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from html import escape
 from importlib import import_module
+from math import cos, pi, sin
 from pathlib import Path
 import re
 from typing import Callable
@@ -37,6 +38,7 @@ from .transform_2d import (
     transform_acac,
     transform_edta,
     transform_monodentate,
+    transform_oxalate,
     transform_polydentate,
 )
 
@@ -44,10 +46,14 @@ try:
     from rdkit import Chem
     from rdkit.Chem import rdDepictor
     from rdkit.Chem.Draw import rdMolDraw2D
+    from rdkit.Geometry import Point2D
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
         "coordchem.viz.diagram_2d requires RDKit. Install rdkit first."
     ) from exc
+
+
+H2_ANNOTATION_PROP = "_coordchem_h2_annotation"
 
 
 def _get_name_parser() -> Callable[[str], ParsedComplex] | None:
@@ -333,6 +339,12 @@ def build_coordination_mol(
                 donor_indices,
                 anchors,
             )
+        elif ligand_symbol == "ox" and denticity == 2:
+            transformed = transform_oxalate(
+                lig_coords,
+                donor_indices,
+                anchors,
+            )
         elif ligand_symbol in {"EDTA", "edta"} and denticity == 6:
             transformed = transform_edta(anchors)
         elif denticity == 1:
@@ -346,7 +358,7 @@ def build_coordination_mol(
                 lig_coords,
                 donor_indices,
                 anchors,
-                shrink_large_ligand=ligand_symbol not in {"acac", "bipy", "bpy"},
+                shrink_large_ligand=ligand_symbol not in {"acac", "bipy", "bpy", "phen"},
             )
 
         donor_anchors = dict(zip(donor_indices, anchors))
@@ -363,7 +375,13 @@ def build_coordination_mol(
                     anchor=donor_anchors[local_idx],
                 )
 
-            idx_map[local_idx] = rw.AddAtom(_copy_atom(atom, atom_label=atom_label))
+            new_atom = _copy_atom(atom, atom_label=atom_label)
+            if ligand_symbol == "en" and local_idx in donor_indices:
+                new_atom.SetProp(H2_ANNOTATION_PROP, "1")
+            if ligand_symbol == "ox":
+                new_atom.SetFormalCharge(0)
+
+            idx_map[local_idx] = rw.AddAtom(new_atom)
 
         for bond in lig_mol.GetBonds():
             begin_idx = bond.GetBeginAtomIdx()
@@ -530,6 +548,132 @@ def _add_svg_labels(svg: str, size: int, title: str | None) -> str:
     return svg
 
 
+def _h2_annotation_positions(
+    drawer: rdMolDraw2D.MolDraw2DSVG,
+    mols: list[Chem.Mol],
+    size: int,
+) -> list[tuple[float, float, str]]:
+    """Return pixel positions for H2 labels next to en donor N atoms."""
+    positions: list[tuple[float, float, str]] = []
+    font_size = drawer.FontSize()
+    if font_size <= 0:
+        font_size = max(12.0, min(18.0, size * 0.025))
+
+    for mol in mols:
+        try:
+            metal = drawer.GetDrawCoords(0)
+        except RuntimeError:
+            continue
+
+        for atom in mol.GetAtoms():
+            if not atom.HasProp(H2_ANNOTATION_PROP):
+                continue
+
+            donor = drawer.GetDrawCoords(atom.GetIdx())
+            side = 1.0 if donor.x >= metal.x else -1.0
+            offset = font_size * 0.70
+            align = "end" if side < 0 else "start"
+            positions.append(
+                (
+                    donor.x + offset * side,
+                    donor.y,
+                    align,
+                )
+            )
+
+    return positions
+
+
+def _draw_h2_annotations(
+    drawer: rdMolDraw2D.MolDraw2DSVG,
+    annotations: list[tuple[float, float, str]],
+) -> None:
+    """Draw H2 labels with RDKit's text renderer to match atom labels."""
+    alignments = {"start": 1, "end": 2}
+    for x, y, align in annotations:
+        drawer.DrawString("H2", Point2D(x, y), alignments[align], True)
+
+
+def _should_use_cp_sandwich_svg(parsed: ParsedComplex, ligand_items: list[str]) -> bool:
+    """Return True for bis-cyclopentadienyl sandwich drawings."""
+    return len(ligand_items) == 2 and all(ligand == "Cp" for ligand in ligand_items)
+
+
+def _cp_ring_points(
+    cx: float,
+    cy: float,
+    rx: float,
+    ry: float,
+    *,
+    rotation_degrees: float = -90.0,
+) -> list[tuple[float, float]]:
+    """Return a perspective-flattened Cp pentagon."""
+    rotation = rotation_degrees * pi / 180
+    return [
+        (
+            cx + rx * cos(rotation + 2 * pi * i / 5),
+            cy + ry * sin(rotation + 2 * pi * i / 5),
+        )
+        for i in range(5)
+    ]
+
+
+def _format_points(points: list[tuple[float, float]]) -> str:
+    return " ".join(f"{x:.1f},{y:.1f}" for x, y in points)
+
+
+def _cp_sandwich_svg(
+    parsed: ParsedComplex,
+    size: int,
+    title: str | None,
+    geometry: str = "sandwich",
+) -> str:
+    """Draw a metallocene-style Cp2M sandwich with centroid bonds."""
+    center_x = size / 2
+    metal_y = size * 0.50
+    top_y = size * 0.29
+    bottom_y = size * 0.71
+    ring_rx = size * 0.16
+    ring_ry = size * 0.045
+    inner_rx = ring_rx * 0.55
+    inner_ry = ring_ry * 0.48
+
+    top_points = _cp_ring_points(center_x, top_y, ring_rx, ring_ry)
+    bottom_points = _cp_ring_points(center_x, bottom_y, ring_rx, ring_ry, rotation_degrees=90)
+    metal_label = escape(parsed.metal)
+    display_title = escape(title) if title else ""
+    display_geometry = escape(geometry)
+
+    return f"""<?xml version='1.0' encoding='iso-8859-1'?>
+<svg version='1.1' baseProfile='full'
+              xmlns='http://www.w3.org/2000/svg'
+                      xmlns:rdkit='http://www.rdkit.org/xml'
+                      xmlns:xlink='http://www.w3.org/1999/xlink'
+                  xml:space='preserve'
+width='{size}px' height='{size}px' viewBox='0 0 {size} {size}'>
+<rect width='{size}' height='{size}' fill='#FFFFFF'/>
+<style>
+  .cp-bond {{ stroke:#000000; stroke-width:2.2px; stroke-linecap:round; stroke-linejoin:round; fill:none; }}
+  .cp-ring {{ stroke:#000000; stroke-width:2.4px; stroke-linejoin:round; fill:none; }}
+  .cp-delocalized-ring {{ stroke:#000000; stroke-width:2.0px; fill:none; }}
+  .cp-metal {{ font-family:Arial, Helvetica, sans-serif; font-size:{size * 0.040:.1f}px; font-weight:400; fill:#000000; text-anchor:middle; dominant-baseline:central; }}
+  .cp-title {{ font-family:Arial, Helvetica, sans-serif; font-size:18px; font-weight:700; fill:#111111; text-anchor:middle; }}
+  .cp-legend {{ font-family:Arial, Helvetica, sans-serif; font-size:18px; fill:#000000; text-anchor:middle; }}
+</style>
+<path class='bond-0 atom-0 atom-1 cp-bond' d='M {center_x:.1f},{metal_y - size * 0.035:.1f} L {center_x:.1f},{top_y:.1f}'/>
+<path class='bond-1 atom-0 atom-2 cp-bond' d='M {center_x:.1f},{metal_y + size * 0.035:.1f} L {center_x:.1f},{bottom_y:.1f}'/>
+<polygon class='bond-2 atom-1 atom-3 cp-ring' points='{_format_points(top_points)}'/>
+<ellipse class='cp-delocalized-ring' cx='{center_x:.1f}' cy='{top_y:.1f}' rx='{inner_rx:.1f}' ry='{inner_ry:.1f}'/>
+<polygon class='bond-3 atom-2 atom-4 cp-ring' points='{_format_points(bottom_points)}'/>
+<ellipse class='cp-delocalized-ring' cx='{center_x:.1f}' cy='{bottom_y:.1f}' rx='{inner_rx:.1f}' ry='{inner_ry:.1f}'/>
+<text class='atom-0 cp-metal' x='{center_x:.1f}' y='{metal_y:.1f}'>{metal_label}</text>
+<circle class='atom-1' cx='{center_x:.1f}' cy='{top_y:.1f}' r='0.1' fill='none'/>
+<circle class='atom-2' cx='{center_x:.1f}' cy='{bottom_y:.1f}' r='0.1' fill='none'/>
+{f"<text class='cp-title' x='{center_x:.1f}' y='28'>{display_title}</text>" if display_title else ""}
+<text class='cp-legend' x='{center_x:.1f}' y='{size - 18:.1f}'>{display_geometry}</text>
+</svg>"""
+
+
 def _split_svg_bond_path(
     path_element: str,
     gap_center_fraction: float = 0.5,
@@ -595,9 +739,21 @@ def diagram_2d_svg(
     parsed = parse_complex_input(complex_input)
     geometry = get_geometry(parsed)
     display_title = title if title is not None else _coordination_compound_name(parsed)
-    geometry_options = _geometry_options(geometry)
     ligand_items = _expand_ligands(parsed)
+    geometry_options = _geometry_options(geometry)
+
+    if _should_use_cp_sandwich_svg(parsed, ligand_items):
+        return _cp_sandwich_svg(
+            parsed,
+            size=size,
+            title=display_title,
+            geometry="sandwich",
+        )
+
     is_edta_drawing = should_use_edta_layout(parsed, ligand_items, geometry)
+    has_tighter_double_bonds = any(
+        ligand_symbol in {"acac", "ox"} for ligand_symbol in ligand_items
+    )
     mols = [
         build_coordination_mol(parsed, geometry_override=option)
         for option in geometry_options
@@ -617,12 +773,16 @@ def diagram_2d_svg(
     options.addStereoAnnotation = False
     options.prepareMolsBeforeDrawing = False
     options.legendFontSize = 18
+    if has_tighter_double_bonds:
+        options.multipleBondOffset = 0.08
 
     if len(mols) == 1:
         drawer.DrawMolecule(mols[0], legend=geometry, confId=0)
     else:
         drawer.DrawMolecules(mols, legends=geometry_options, confIds=[0] * len(mols))
 
+    h2_annotations = _h2_annotation_positions(drawer, mols, size)
+    _draw_h2_annotations(drawer, h2_annotations)
     drawer.FinishDrawing()
     svg = drawer.GetDrawingText()
     svg = _add_interrupted_bond_styles(svg, mols)

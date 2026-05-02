@@ -28,12 +28,22 @@ def _polar_site(angle_degrees: float, radius: float, style: str) -> Site:
 
 
 def _cn4_depth_sites(n_sites: int) -> list[Site]:
-    """Return four sites with 3D depth cues for CN=4 drawings."""
+    """Return tetrahedral CN=4 sites with front/back vertical depth cues."""
     return [
-        _polar_site(135, 3.4, "dash"),
-        _polar_site(45, 3.4, "dash"),
-        _polar_site(-45, 3.4, "wedge"),
-        _polar_site(-135, 3.4, "wedge"),
+        Site(-3.0, 0.0, "plain"),
+        Site(0.0, 2.85, "dash"),
+        Site(3.0, 0.0, "plain"),
+        Site(0.0, -2.85, "wedge"),
+    ][:n_sites]
+
+
+def _square_planar_sites(n_sites: int) -> list[Site]:
+    """Return flat square-planar CN=4 sites as a cross."""
+    return [
+        Site(0.0, 3.2, "plain"),
+        Site(-3.2, 0.0, "plain"),
+        Site(3.2, 0.0, "plain"),
+        Site(0.0, -3.2, "plain"),
     ][:n_sites]
 
 
@@ -64,7 +74,7 @@ def coordination_sites(geometry: str, n_sites: int) -> list[Site]:
         ][:n_sites]
 
     if g == "square planar":
-        return _cn4_depth_sites(n_sites)
+        return _square_planar_sites(n_sites)
 
     if g == "tetrahedral":
         return _cn4_depth_sites(n_sites)

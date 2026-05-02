@@ -26,18 +26,15 @@ LIGAND_SMILES: dict[str, str] = {
     "SCN": "[S-]C#N",
     "NCS": "N=C=[S-]",
     "N3": "[N-]=[N+]=N",
-    "CN2H2": "NC#N",
     "en": "NCCN",
-    "phen": "c1ccc2nc3ccccc3nc2c1",
+    "phen": "C1=CC2=C(C3=C(C=CC=N3)C=C2)N=C1",
     "bipy": "n1ccccc1-c1ncccc1",
     "bpy": "n1ccccc1-c1ncccc1",
     "ox": "[O-]C(=O)C(=O)[O-]",
     "acac": "CC(=O)C=C(O)C",
-    "dien": "NCCNCCN",
-    "tren": "N(CCN)CCN",
     "EDTA": "N(CC(=O)O)(CC(=O)O)CCN(CC(=O)O)CC(=O)O",
     "edta": "N(CC(=O)O)(CC(=O)O)CCN(CC(=O)O)CC(=O)O",
-    "Cp": "c1cccc1",
+    "Cp": "[cH-]1cccc1",
     "tpy": "n1ccccc1-c1nc(ccc1)-c1ncccc1",
     "terpy": "n1ccccc1-c1nc(ccc1)-c1ncccc1",
     "py": "n1ccccc1",
@@ -64,10 +61,9 @@ LIGAND_DONOR_INDEX_OVERRIDES: dict[str, tuple[int, ...]] = {
     "en": (0, 3),
     "bipy": (0, 7),
     "bpy": (0, 7),
-    "phen": (4, 11),
+    "phen": (9, 12),
     "ox": (0, 5),
     "acac": (2, 5),
-    "dien": (0, 3, 6),
     "EDTA": (0, 4, 8, 11, 15, 19),
     "edta": (0, 4, 8, 11, 15, 19),
     "tpy": (0, 7, 13),
@@ -101,15 +97,16 @@ ABBREVIATED_MONODENTATE_LIGANDS: set[str] = {
     "SCN",
     "NCS",
     "N3",
+    "PPh3",
+    "PMe3",
+    "PEt3",
 }
 
 LIGAND_DISPLAY_LABELS: dict[str, tuple[str, str]] = {
     "NH3": ("NH3", "H3N"),
     "H2O": ("OH2", "H2O"),
     "OH": ("OH", "HO"),
-    "en": ("NH2", "H2N"),
-    "dien": ("NH2", "H2N"),
-    "tren": ("NH2", "H2N"),
+    "en": ("N", "N"),
     "EDTA": ("NH2", "H2N"),
     "edta": ("NH2", "H2N"),
 }
@@ -127,23 +124,15 @@ MONODENTATE_DISPLAY_LABELS: dict[str, tuple[str, str]] = {
     "SCN": ("SCN", "NCS"),
     "NCS": ("NCS", "SCN"),
     "N3": ("N3", "N3"),
+    "PPh3": ("PPh3", "Ph3P"),
+    "PMe3": ("PMe3", "Me3P"),
+    "PEt3": ("PEt3", "Et3P"),
 }
 
 POLYDENTATE_DONOR_DISPLAY_LABELS: dict[str, dict[int, tuple[str, str]]] = {
     "en": {
-        0: ("NH2", "H2N"),
-        3: ("NH2", "H2N"),
-    },
-    "dien": {
-        0: ("NH2", "H2N"),
-        3: ("NH", "HN"),
-        6: ("NH2", "H2N"),
-    },
-    "tren": {
         0: ("N", "N"),
-        3: ("NH2", "H2N"),
-        6: ("NH2", "H2N"),
-        9: ("NH2", "H2N"),
+        3: ("N", "N"),
     },
 }
 
