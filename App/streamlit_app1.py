@@ -2,6 +2,7 @@ import sys
 import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
 import pandas as pd
@@ -10,7 +11,20 @@ import streamlit as st
 
 from coordchem.parser import parse_formula, FormulaParseError
 from coordchem.geometry import geometry_report
-from coordchem.database.ir_bands import IRBandDB
+from coordchem.complex import Complex
+from data.database.ir_ra_bands import IRBandDB
+
+
+def render_3d_view(complex_obj: Complex, width: int = 500, height: int = 400):
+    """Render a 3D view of ``complex_obj`` inside the current Streamlit page."""
+    import streamlit.components.v1 as components
+
+    try:
+        html = complex_obj.draw_3d_html(width=width, height=height)
+    except Exception as exc:
+        st.warning(f"Could not build a 3D view: {exc}")
+        return
+    components.html(html, width=width, height=height + 20)
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +145,10 @@ for lig, count in parsed.ligands.items():
     dent   = parsed.ligand_denticity.get(lig, 1)
     donor  = parsed.donor_atoms.get(lig, "?")
     st.write(f"- {count}× **{lig}** ({name}) — charge {charge:+d}, denticity {dent}, donor atom: {donor}")
+
+# 3D view
+st.subheader("3D Structure")
+render_3d_view(Complex(parsed))
 
 # Fetch bands
 db = IRBandDB()
