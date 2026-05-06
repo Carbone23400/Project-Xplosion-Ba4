@@ -25,12 +25,17 @@ Usage
     result.intensities         # scaled numerical intensities
     result.warnings            # any missing ligands
 """
+import sys
+import os
+
+# Navigate up from src/coordchem/spectra/predictor.py to the repo root
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from dataclasses import dataclass, field
 from typing import Optional
 
-from data.database.ir_ra_bands import IRBandDB, BandRecord
-from src.coordchem.parser import ParsedComplex
+from data.ir_ra_bands import IRBandDB, BandRecord
+from coordchem.parser import ParsedComplex
 
 
 # ---------------------------------------------------------------------------
