@@ -30,12 +30,12 @@
 |
 
 ========
-Cheminfo
+CoordAnalyst
 ========
 
 
     Add a short description here!
-
+an educational tool helping students predict oxidation, geometry, number of d electrons, and other properties of a coordination complex as well as visualize it in 2D, 3D and draw a reliable IR and Raman spectra from streches in databases for common ligands
 
 A longer description of your project goes here...
 
