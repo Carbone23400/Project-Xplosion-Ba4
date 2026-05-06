@@ -6,10 +6,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "data"))
 
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from coordchem.parser import parse_formula, FormulaParseError
 from coordchem.geometry import geometry_report
+from coordchem.complex import Complex
 from coordchem.spectra.predictor import predict_spectrum
 from coordchem.spectra.renderer import plot_spectrum, build_spectrum
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -27,6 +29,17 @@ def bands_to_df(result):
             "Assignment":     b.assignment,
         })
     return pd.DataFrame(rows)
+
+def render_3d_view(complex_obj: Complex, width: int = 500, height: int = 400):
+    """Render a 3D view of ``complex_obj`` inside the current Streamlit page."""
+    import streamlit.components.v1 as components
+
+    try:
+        html = complex_obj.draw_3d_html(width=width, height=height)
+    except Exception as exc:
+        st.warning(f"Could not build a 3D view: {exc}")
+        return
+    components.html(html, width=width, height=height + 20)
 
 
 # ---------------------------------------------------------------------------
@@ -90,6 +103,10 @@ for lig, count in parsed.ligands.items():
         f"- {count}× **{lig}** ({name}) — "
         f"charge {charge:+d}, denticity {dent}, donor atom: {donor}"
     )
+
+# 3D view
+st.subheader("3D Structure")
+render_3d_view(Complex(parsed))
 
 # Run predictor
 result    = predict_spectrum(parsed, spectrum_type=spectrum_type)
