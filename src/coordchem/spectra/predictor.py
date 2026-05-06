@@ -25,12 +25,17 @@ Usage
     result.intensities         # scaled numerical intensities
     result.warnings            # any missing ligands
 """
+import sys
+import os
+
+# Navigate up from src/coordchem/spectra/predictor.py to the repo root
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 from dataclasses import dataclass, field
 from typing import Optional
 
-from data.database.ir_ra_bands import IRBandDB, BandRecord
-from src.coordchem.parser import ParsedComplex
+from data.ir_ra_bands import IRBandDB, BandRecord
+from coordchem.parser import ParsedComplex
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +175,13 @@ def predict_spectrum(
     # Validate inputs
     # ------------------------------------------------------------------
     spectrum_type = spectrum_type.upper()
-    if spectrum_type not in ("IR", "RAMAN"):
+    if spectrum_type.upper() == "IR":
+        spectrum_type = "IR"
+    elif spectrum_type.upper() == "RAMAN":
+        spectrum_type = "Raman"
+    else:
+        raise ValueError(f"spectrum_type must be 'IR' or 'Raman', got '{spectrum_type}'")
+    if spectrum_type not in ("IR", "Raman"):
         raise ValueError(
             f"spectrum_type must be 'IR' or 'Raman', got '{spectrum_type}'"
         )
