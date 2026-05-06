@@ -33,12 +33,17 @@ def bands_to_df(result):
 # App layout
 # ---------------------------------------------------------------------------
 
-st.set_page_config(page_title="CoordChem", page_icon="🔬", layout="centered")
-
-st.title("🔬 CoordChem — IR/Raman Spectrum Predictor")
+st.set_page_config(page_title="CoordAnalyst", page_icon="⚛️", layout="centered")
+st.title("⚛️ CoordAnalyst — Coordination Complex Spectra Predictor")
 st.caption("Educational tool · ±20–50 cm⁻¹ accuracy · data from Nakamoto 6th ed.")
 
-formula_input = st.text_input("Enter a coordination complex formula", value="[Fe(CN)6]4-")
+input_mode = st.radio("Input mode", ["Formula", "Name"], horizontal=True)
+
+if input_mode == "Formula":
+    user_input = st.text_input("Enter a coordination complex formula", value="[Fe(CN)6]4-")
+else:
+    user_input = st.text_input("Enter a complex name", value="hexacyanoferrate(II)")
+
 spectrum_type = st.radio("Spectrum type", ["IR", "Raman"], horizontal=True)
 sigma         = st.slider("Peak width σ (cm⁻¹)", min_value=5, max_value=60, value=20, step=5)
 
@@ -46,11 +51,19 @@ if not st.button("Analyze", type="primary"):
     st.stop()
 
 # Parse formula
+from coordchem.name import parse_name   
+
 try:
-    parsed = parse_formula(formula_input.strip())
+    if input_mode == "Formula":
+        parsed = parse_formula(user_input.strip())
+    else:
+        parsed = parse_name(user_input.strip())
     report = geometry_report(parsed)
 except FormulaParseError as e:
     st.error(f"Could not parse formula: {e}")
+    st.stop()
+except Exception as e:
+    st.error(f"Could not resolve name: {e}")
     st.stop()
 
 for w in parsed.warnings:
@@ -89,7 +102,7 @@ for w in result.warnings:
 st.subheader(f"Predicted {spectrum_type} Spectrum")
 if all_bands:
     st.plotly_chart(
-        plot_spectrum(result.bands, result.intensities, f"{spectrum_type} — {formula_input}", sigma),
+        plot_spectrum(result.bands, result.intensities, f"{spectrum_type} — {user_input}", sigma),
         use_container_width=True
     )
     st.subheader("Band Assignments")

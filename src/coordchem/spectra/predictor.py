@@ -175,7 +175,13 @@ def predict_spectrum(
     # Validate inputs
     # ------------------------------------------------------------------
     spectrum_type = spectrum_type.upper()
-    if spectrum_type not in ("IR", "RAMAN"):
+    if spectrum_type.upper() == "IR":
+        spectrum_type = "IR"
+    elif spectrum_type.upper() == "RAMAN":
+        spectrum_type = "Raman"
+    else:
+        raise ValueError(f"spectrum_type must be 'IR' or 'Raman', got '{spectrum_type}'")
+    if spectrum_type not in ("IR", "Raman"):
         raise ValueError(
             f"spectrum_type must be 'IR' or 'Raman', got '{spectrum_type}'"
         )
