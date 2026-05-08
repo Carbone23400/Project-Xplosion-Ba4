@@ -1,0 +1,132 @@
+"""
+tests/test_structure_3d.py
+--------------------------
+Tests for ``coordchem.viz.structure_3d``.
+
+Run with:
+    python -m pytest tests/test_structure_3d.py -v
+"""
+
+import pytest
+
+pytest.importorskip("rdkit")
+
+from rdkit import Chem  # noqa: E402
+
+from coordchem.complex import Complex  # noqa: E402
+from coordchem.parser import parse_formula  # noqa: E402
+from coordchem.viz.structure_3d import (  # noqa: E402
+    build_complex_3d,
+    build_ligand_3d,
+    find_donor_atom,
+    geometry_positions,
+    octahedral_positions,
+)
+
+
+class TestGeometryPositions:
+    def test_octahedral_returns_six_axes(self):
+        pos = octahedral_positions(distance=2.0)
+        assert len(pos) == 6
+        # Sites are 2 Å away from origin along the axes
+        for x, y, z in pos:
+            assert pytest_approx(x ** 2 + y ** 2 + z ** 2) == 4.0
+
+    def test_geometry_positions_octahedral(self):
+        pos = geometry_positions("octahedral", 6)
+        assert len(pos) == 6
+
+    def test_geometry_positions_tetrahedral(self):
+        pos = geometry_positions("tetrahedral", 4)
+        assert len(pos) == 4
+
+    def test_geometry_positions_unknown_falls_back(self):
+        # Unknown geometry but n=6 should still give 6 sites
+        pos = geometry_positions("unknown geometry", 6)
+        assert len(pos) == 6
+
+
+class TestBuildLigand:
+    def test_build_water(self):
+        mol = build_ligand_3d("O")
+        assert mol.GetNumConformers() == 1
+        # H2O has 1 O + 2 H after AddHs
+        assert mol.GetNumAtoms() == 3
+
+    def test_build_invalid_smiles(self):
+        with pytest.raises(ValueError):
+            build_ligand_3d("not_a_smiles_string!!")
+
+    def test_find_donor_in_ammonia(self):
+        mol = build_ligand_3d("N")
+        idx = find_donor_atom(mol, "N")
+        assert mol.GetAtomWithIdx(idx).GetSymbol() == "N"
+
+    def test_find_donor_with_override(self):
+        mol = build_ligand_3d("NCCN")  # ethylenediamine
+        idx = find_donor_atom(mol, "N", override=0)
+        assert idx == 0
+        assert mol.GetAtomWithIdx(idx).GetSymbol() == "N"
+
+    def test_find_donor_missing_raises(self):
+        mol = build_ligand_3d("N")
+        with pytest.raises(ValueError):
+            find_donor_atom(mol, "P")
+
+
+class TestBuildComplex:
+    def test_hexacyanoferrate_builds(self):
+        parsed = parse_formula("[Fe(CN)6]4-")
+        mol = build_complex_3d(parsed)
+
+        assert isinstance(mol, Chem.Mol)
+        assert mol.GetNumConformers() == 1
+
+        # Metal at index 0 should be Fe at the origin
+        assert mol.GetAtomWithIdx(0).GetSymbol() == "Fe"
+        conf = mol.GetConformer()
+        origin = conf.GetAtomPosition(0)
+        assert pytest_approx(origin.x ** 2 + origin.y ** 2 + origin.z ** 2) == 0.0
+
+        # 6 dative bonds from the metal
+        metal_atom = mol.GetAtomWithIdx(0)
+        dative_bonds = [
+            b for b in metal_atom.GetBonds()
+            if b.GetBondType() == Chem.BondType.DATIVE
+        ]
+        assert len(dative_bonds) == 6
+
+    def test_complex_class_draw_3d_html(self):
+        py3Dmol = pytest.importorskip("py3Dmol")  # noqa: F841
+
+        c = Complex.from_formula("[Fe(CN)6]4-")
+        html = c.draw_3d_html(width=300, height=300)
+
+        assert isinstance(html, str)
+        assert len(html) > 0
+
+    def test_complex_class_build_3d(self):
+        c = Complex.from_formula("[Fe(CN)6]4-")
+        mol = c.build_3d()
+
+        assert mol.GetNumConformers() >= 1
+        assert mol.GetAtomWithIdx(0).GetSymbol() == "Fe"
+
+    def test_tetrahedral_complex_has_four_sites(self):
+        parsed = parse_formula("[Zn(NH3)4]2+")
+        mol = build_complex_3d(parsed)
+
+        metal_atom = mol.GetAtomWithIdx(0)
+        dative_bonds = [
+            b for b in metal_atom.GetBonds()
+            if b.GetBondType() == Chem.BondType.DATIVE
+        ]
+        assert len(dative_bonds) == 4
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def pytest_approx(value, rel=1e-6, abs_=1e-6):
+    return pytest.approx(value, rel=rel, abs=abs_)
