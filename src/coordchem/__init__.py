@@ -1,5 +1,5 @@
 from .parser import FormulaParseError, ParsedComplex, parse_formula
-from .name2 import parse_name
+from .name import parse_name
 from .geometry import get_d_count, get_geometry, geometry_report, predict_geometry
 from .complex import Complex
 

@@ -1,6 +1,6 @@
 # give the information about mol from its name
 
-#run with python -m coordchem.name2
+#run with python -m coordchem.name
 
 import re
 

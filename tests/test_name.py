@@ -1,20 +1,20 @@
 """
-tests/test_name2.py
+tests/test_name.py
 -------------------
-Test suite for coordchem.name2.
+Test suite for coordchem.name.
 
-Run with: python -m pytest tests/test_name2.py -v
+Run with: python -m pytest tests/test_name.py -v
 """
 
 import pytest
 
-from coordchem.name2 import (
+from coordchem.name import (
     extract_complex_charge_from_name,
     ligand_data,
     metal_data,
     parse_name,
 )
-from src.coordchem.parser import ParsedComplex
+from coordchem.parser import ParsedComplex
 
 
 # ===========================================================================

@@ -58,7 +58,7 @@ H2_ANNOTATION_PROP = "_coordchem_h2_annotation"
 
 def _get_name_parser() -> Callable[[str], ParsedComplex] | None:
     """Find parse_name() in the evolving package structure."""
-    for module_name in ("..name2", "..name", "..geometry"):
+    for module_name in ("..name", "..geometry"):
         try:
             module = import_module(module_name, package=__package__)
         except Exception:
@@ -458,15 +458,15 @@ def _geometry_options(geometry: str) -> list[str]:
 
 
 def _get_name_module():
-    """Load name2.py as the source of naming conventions."""
+    """Load name.py as the source of naming conventions."""
     try:
-        return import_module("..name2", package=__package__)
+        return import_module("..name", package=__package__)
     except Exception:
         return None
 
 
 def _roman_numeral(value: int | None) -> str:
-    """Return a Roman numeral using name2.py conventions."""
+    """Return a Roman numeral using name.py conventions."""
     name_module = _get_name_module()
     roman_number = getattr(name_module, "ROMAN_NUMBER", {}) if name_module else {}
     numerals = {number: roman for roman, number in roman_number.items()}
@@ -475,7 +475,7 @@ def _roman_numeral(value: int | None) -> str:
 
 
 def _ligand_count_prefix(count: int) -> str:
-    """Return a coordination prefix using name2.py prefix values."""
+    """Return a coordination prefix using name.py prefix values."""
     preferred_prefixes = {
         1: "",
         2: "di",
@@ -495,8 +495,8 @@ def _ligand_count_prefix(count: int) -> str:
         return prefix
 
     name_module = _get_name_module()
-    name2_prefixes = getattr(name_module, "PREFIXE", {}) if name_module else {}
-    if name2_prefixes.get(prefix) == count:
+    name_prefixes = getattr(name_module, "PREFIXE", {}) if name_module else {}
+    if name_prefixes.get(prefix) == count:
         return prefix
 
     return f"{count}-"
@@ -514,7 +514,7 @@ def _metal_name(parsed: ParsedComplex) -> str:
 
 
 def _coordination_compound_name(parsed: ParsedComplex) -> str:
-    """Build a compact name from parser-enriched data and name2.py tables."""
+    """Build a compact name from parser-enriched data and name.py tables."""
     ligand_parts: list[str] = []
     for ligand, count in parsed.ligands.items():
         ligand_name = parsed.ligand_names.get(ligand, ligand)

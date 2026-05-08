@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .geometry import get_d_count, get_geometry, geometry_report
-from .name2 import parse_name
+from .name import parse_name
 from .parser import ParsedComplex, parse_formula
 
 
