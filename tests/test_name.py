@@ -24,7 +24,7 @@ from coordchem.parser import ParsedComplex
 class TestOxidationStateFromName:
 
     def test_extract_iron_ii(self):
-        assert extract_complex_charge_from_name("hexacyanidoferrate(II)") == 2
+        assert extract_complex_charge_from_name("hexacyanoferrate(II)") == 2
 
     def test_extract_cobalt_iii(self):
         assert extract_complex_charge_from_name("hexaamminecobalt(III)") == 3
@@ -43,10 +43,10 @@ class TestMetalData:
         assert metal_data("tetraamminecopper(II)") == "Cu"
 
     def test_anion_metal_name(self):
-        assert metal_data("hexacyanidoferrate(II)") == "Fe"
+        assert metal_data("hexacyanoferrate(II)") == "Fe"
 
     def test_platinum_is_not_detected_as_tin(self):
-        assert metal_data("diamminedichloridoplatinum(II)") == "Pt"
+        assert metal_data("diamminedichloroplatinum(II)") == "Pt"
 
     def test_unknown_metal_raises(self):
         with pytest.raises(ValueError):
@@ -62,14 +62,14 @@ class TestLigandData:
     def test_tetraammine(self):
         assert ligand_data("tetraamminecopper(II)") == {"NH3": 4}
 
-    def test_hexacyanido(self):
-        assert ligand_data("hexacyanidoferrate(II)") == {"CN": 6}
+    def test_hexacyano(self):
+        assert ligand_data("hexacyanoferrate(II)") == {"CN": 6}
 
     def test_mixed_ligands(self):
-        assert ligand_data("diamminedichloridoplatinum(II)") == {"Cl": 2, "NH3": 2}
+        assert ligand_data("diamminedichloroplatinum(II)") == {"Cl": 2, "NH3": 2}
 
     def test_name_normalization(self):
-        assert ligand_data("di ammine-di chlorido platinum(II)") == {"Cl": 2, "NH3": 2}
+        assert ligand_data("di ammine-di chloro platinum(II)") == {"Cl": 2, "NH3": 2}
 
 
 # ===========================================================================
@@ -90,16 +90,16 @@ class TestParseName:
         assert result.complex_charge == 2
         assert result.coordination_number == 4
 
-    def test_parse_diamminedichloridoplatinum_ii(self):
-        result = parse_name("diamminedichloridoplatinum(II)")
+    def test_parse_diamminedichloroplatinum_ii(self):
+        result = parse_name("diamminedichloroplatinum(II)")
         assert result.metal == "Pt"
         assert result.ligands == {"Cl": 2, "NH3": 2}
         assert result.oxidation_state == 2
         assert result.complex_charge == 0
         assert result.coordination_number == 4
 
-    def test_parse_hexacyanidoferrate_ii(self):
-        result = parse_name("hexacyanidoferrate(II)")
+    def test_parse_hexacyanoferrate_ii(self):
+        result = parse_name("hexacyanoferrate(II)")
         assert result.metal == "Fe"
         assert result.ligands == {"CN": 6}
         assert result.oxidation_state == 2
