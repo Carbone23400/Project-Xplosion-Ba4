@@ -726,18 +726,76 @@ def _add_interrupted_bond_styles(svg: str, mols: list[Chem.Mol]) -> str:
     return svg
 
 
+def _square_antiprismatic_frame_svg(
+    drawer: rdMolDraw2D.MolDraw2DSVG,
+    mols: list[Chem.Mol],
+    geometry_options: list[str],
+) -> str:
+    """Return thin dashed guide lines for the two square-antiprism squares."""
+    lines: list[str] = []
+    square_edges = ((0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4))
+
+    for mol, geometry in zip(mols, geometry_options):
+        if "square antiprismatic" not in geometry.lower():
+            continue
+        donor_indices = [
+            bond.GetOtherAtomIdx(0)
+            for bond in mol.GetBonds()
+            if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}
+        ]
+        if len(donor_indices) < 8:
+            continue
+
+        for begin_idx, end_idx in square_edges:
+            begin = drawer.GetDrawCoords(donor_indices[begin_idx])
+            end = drawer.GetDrawCoords(donor_indices[end_idx])
+            lines.append(
+                (
+                    "<line class='coordchem-antiprism-frame' "
+                    f"x1='{begin.x:.1f}' y1='{begin.y:.1f}' "
+                    f"x2='{end.x:.1f}' y2='{end.y:.1f}'/>"
+                )
+            )
+
+    if not lines:
+        return ""
+
+    return (
+        "<g class='coordchem-antiprism-frame-layer' "
+        "style='fill:none;stroke:#000000;stroke-width:0.7px;"
+        "stroke-dasharray:2,3;stroke-linecap:round;stroke-opacity:0.75'>\n"
+        + "\n".join(lines)
+        + "\n</g>\n"
+    )
+
+
+def _add_square_antiprismatic_frame(svg: str, frame_svg: str) -> str:
+    """Insert square-antiprism guide lines behind RDKit's molecule paths."""
+    if not frame_svg:
+        return svg
+
+    panel_background = re.compile(
+        r"(<rect style='opacity:1\.0;fill:#FFFFFF;stroke:none'[^>]*> </rect>)"
+    )
+    if panel_background.search(svg):
+        return panel_background.sub(r"\1\n" + frame_svg, svg, count=1)
+
+    return svg.replace("<!-- END OF HEADER -->", "<!-- END OF HEADER -->\n" + frame_svg, 1)
+
+
 def diagram_2d_svg(
     complex_input: str | ParsedComplex,
     size: int = 700,
     *,
     title: str | None = None,
+    geometry_override: str | None = None,
 ) -> str:
     """Draw the coordination complex as SVG using RDKit."""
     if size <= 0:
         raise ValueError("size must be a positive integer")
 
     parsed = parse_complex_input(complex_input)
-    geometry = get_geometry(parsed)
+    geometry = geometry_override or get_geometry(parsed)
     display_title = title if title is not None else _coordination_compound_name(parsed)
     ligand_items = _expand_ligands(parsed)
     geometry_options = _geometry_options(geometry)
@@ -782,9 +840,15 @@ def diagram_2d_svg(
         drawer.DrawMolecules(mols, legends=geometry_options, confIds=[0] * len(mols))
 
     h2_annotations = _h2_annotation_positions(drawer, mols, size)
+    square_antiprismatic_frame = _square_antiprismatic_frame_svg(
+        drawer,
+        mols,
+        geometry_options,
+    )
     _draw_h2_annotations(drawer, h2_annotations)
     drawer.FinishDrawing()
     svg = drawer.GetDrawingText()
+    svg = _add_square_antiprismatic_frame(svg, square_antiprismatic_frame)
     svg = _add_interrupted_bond_styles(svg, mols)
     return _add_svg_labels(svg, size=size, title=display_title)
 
@@ -795,11 +859,17 @@ def save_diagram_2d(
     size: int = 700,
     *,
     title: str | None = None,
+    geometry_override: str | None = None,
 ) -> Path:
     """Save the SVG depiction to disk."""
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    svg = diagram_2d_svg(complex_input=complex_input, size=size, title=title)
+    svg = diagram_2d_svg(
+        complex_input=complex_input,
+        size=size,
+        title=title,
+        geometry_override=geometry_override,
+    )
     output.write_text(svg, encoding="utf-8")
     return output
 

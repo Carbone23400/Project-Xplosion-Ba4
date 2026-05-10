@@ -73,10 +73,10 @@ class TestCompoundNameInput:
         assert get_geometry("tetraamminecopper(II)") == "distorted square planar or tetrahedral"
 
     def test_d_count_from_full_name(self):
-        assert get_d_count("diamminedichloridoplatinum(II)") == 8
+        assert get_d_count("diamminedichloroplatinum(II)") == 8
 
     def test_report_from_full_name(self):
-        report = geometry_report("hexacyanidoferrate(II)")
+        report = geometry_report("hexacyanoferrate(II)")
         assert report["metal"] == "Fe"
         assert report["coordination_number"] == 6
         assert report["geometry"] == "octahedral"

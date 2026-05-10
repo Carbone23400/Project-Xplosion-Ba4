@@ -59,6 +59,22 @@ def _cn6_depth_sites(n_sites: int) -> list[Site]:
     ][:n_sites]
 
 
+def _square_antiprismatic_sites(n_sites: int) -> list[Site]:
+    """Return a staggered two-square projection for square-antiprismatic CN=8."""
+    return [
+        # Upper square: two thin bonds, one front wedge, one back dash.
+        Site(-2.35, 2.55, "plain"),
+        Site(0.55, 3.15, "dash"),
+        Site(2.35, 2.25, "plain"),
+        Site(-0.55, 1.65, "wedge"),
+        # Lower square, shifted in quincunx: two dashed back bonds and two wedges.
+        Site(1.25, -1.25, "dash"),
+        Site(-1.25, -1.25, "dash"),
+        Site(-2.65, -2.45, "wedge"),
+        Site(0.85, -2.45, "wedge"),
+    ][:n_sites]
+
+
 def coordination_sites(geometry: str, n_sites: int) -> list[Site]:
     """Return idealized 2D positions plus bond style cues."""
     g = geometry.lower().strip()
@@ -90,21 +106,24 @@ def coordination_sites(geometry: str, n_sites: int) -> list[Site]:
 
     if "trigonal bipyramidal" in g:
         return [
-            Site(0.0, -3.5, "plain"),
-            Site(2.8, -0.7, "plain"),
-            Site(1.7, 2.3, "plain"),
-            Site(-1.7, 2.3, "plain"),
-            Site(-2.8, -0.7, "plain"),
+            _polar_site(90, 3.4, "plain"),
+            _polar_site(30, 3.4, "dash"),
+            _polar_site(-30, 3.4, "wedge"),
+            _polar_site(-150, 3.4, "wedge"),
+            _polar_site(150, 3.4, "dash"),
         ][:n_sites]
 
     if "square pyramidal" in g:
         return [
             Site(0.0, -3.2, "plain"),
-            Site(3.2, 0.0, "plain"),
             Site(0.0, 3.2, "plain"),
             Site(-3.2, 0.0, "plain"),
-            Site(2.2, -2.2, "wedge"),
+            Site(2.6, 1.8, "dash"),
+            Site(2.6, -1.8, "wedge"),
         ][:n_sites]
+
+    if "square antiprismatic" in g:
+        return _square_antiprismatic_sites(n_sites)
 
     return regular_polygon_sites(n_sites)
 

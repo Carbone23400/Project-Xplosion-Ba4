@@ -430,6 +430,100 @@ def test_cn6_projection_has_two_wedges_two_dashes_and_two_plain_bonds():
     assert bond_dirs.count("NONE") == 2
 
 
+def test_cn5_square_pyramidal_projection_has_right_depth_cues():
+    mol = build_coordination_mol("[Fe(CO)5]", geometry_override="square pyramidal")
+    conf = mol.GetConformer()
+
+    sites = []
+    for bond in mol.GetBonds():
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}:
+            other = bond.GetOtherAtomIdx(0)
+            pos = conf.GetAtomPosition(other)
+            sites.append((str(bond.GetBondDir()), round(pos.x, 2), round(pos.y, 2)))
+
+    assert ("NONE", -3.2, 0.0) in sites
+    assert ("NONE", 0.0, 3.2) in sites
+    assert ("NONE", 0.0, -3.2) in sites
+    assert ("BEGINDASH", 2.6, 1.8) in sites
+    assert ("BEGINWEDGE", 2.6, -1.8) in sites
+
+
+def test_cn5_trigonal_bipyramidal_projection_matches_octahedral_without_bottom():
+    mol = build_coordination_mol("[Fe(CO)5]", geometry_override="trigonal bipyramidal")
+    conf = mol.GetConformer()
+
+    sites = []
+    for bond in mol.GetBonds():
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}:
+            other = bond.GetOtherAtomIdx(0)
+            pos = conf.GetAtomPosition(other)
+            sites.append((str(bond.GetBondDir()), round(pos.x, 2), round(pos.y, 2)))
+
+    assert ("NONE", 0.0, 3.4) in sites
+    assert ("BEGINDASH", 2.94, 1.7) in sites
+    assert ("BEGINWEDGE", 2.94, -1.7) in sites
+    assert ("BEGINWEDGE", -2.94, -1.7) in sites
+    assert ("BEGINDASH", -2.94, 1.7) in sites
+    assert ("NONE", 0.0, -3.4) not in sites
+
+
+def test_cn8_square_antiprismatic_projection_uses_staggered_styled_squares():
+    mol = build_coordination_mol("[TaF8]3-", geometry_override="square antiprismatic")
+    conf = mol.GetConformer()
+
+    sites = []
+    for bond in mol.GetBonds():
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}:
+            other = bond.GetOtherAtomIdx(0)
+            pos = conf.GetAtomPosition(other)
+            sites.append((str(bond.GetBondDir()), round(pos.x, 2), round(pos.y, 2)))
+
+    expected_top_square = {
+        ("NONE", -2.35, 2.55),
+        ("BEGINDASH", 0.55, 3.15),
+        ("NONE", 2.35, 2.25),
+        ("BEGINWEDGE", -0.55, 1.65),
+    }
+    expected_bottom_square = {
+        ("BEGINDASH", 1.25, -1.25),
+        ("BEGINDASH", -1.25, -1.25),
+        ("BEGINWEDGE", -2.65, -2.45),
+        ("BEGINWEDGE", 0.85, -2.45),
+    }
+
+    assert set(sites) == expected_top_square | expected_bottom_square
+
+
+def test_diagram_2d_svg_accepts_geometry_override():
+    svg = diagram_2d_svg(
+        "[TaF8]3-",
+        title="square antiprismatic",
+        geometry_override="square antiprismatic",
+    )
+
+    assert "square antiprismatic" in svg
+    assert "coordchem-antiprism-frame-layer" in svg
+    assert svg.count("class='coordchem-antiprism-frame'") == 8
+    assert "width='350.0'" not in svg
+
+
+def test_cn8_square_antiprismatic_frame_uses_polydentate_donors():
+    mol = build_coordination_mol("[Zn(ox)4]6-", geometry_override="square antiprismatic")
+    donor_indices = [
+        bond.GetOtherAtomIdx(0)
+        for bond in mol.GetBonds()
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}
+    ]
+    svg = diagram_2d_svg(
+        "[Zn(ox)4]6-",
+        title="tetraoxalatozincate(II) - square antiprismatic",
+        geometry_override="square antiprismatic",
+    )
+
+    assert donor_indices == [1, 6, 7, 12, 13, 18, 19, 24]
+    assert svg.count("class='coordchem-antiprism-frame'") == 8
+
+
 def test_bipy_projection_has_two_wedges_two_dashes_and_two_plain_bonds():
     mol = build_coordination_mol("[Fe(bipy)3]2+")
 
