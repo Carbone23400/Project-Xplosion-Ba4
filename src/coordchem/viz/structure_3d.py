@@ -40,7 +40,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from ..parser import ParsedComplex, parse_formula
-from .ligand_data import LIGAND_DONOR_INDEX_OVERRIDES, LIGAND_SMILES
+from .ligand_data import LIGAND_SMILES, donor_index_overrides_for_ligand
 
 
 Position = Tuple[float, float, float]
@@ -303,8 +303,8 @@ def build_complex_3d(
             continue
 
         donor_symbol = parsed.donor_atoms.get(ligand_symbol, "?")
-        donor_overrides: Sequence[int] = LIGAND_DONOR_INDEX_OVERRIDES.get(
-            ligand_symbol, ()
+        donor_overrides: Sequence[int] = donor_index_overrides_for_ligand(
+            ligand_symbol, donor_symbol
         )
 
         for _ in range(count):
@@ -337,7 +337,12 @@ def build_complex_3d(
             # Copy atoms with translated coordinates so that the donor
             # atom lands on ``target``.
             for atom in ligand_mol.GetAtoms():
-                global_idx = rw.AddAtom(atom)
+                atom_to_add = Chem.Atom(atom)
+                if ligand_symbol == "dmso" and atom.GetIdx() == donor_idx_local:
+                    atom_to_add.SetNumExplicitHs(0)
+                    atom_to_add.SetNoImplicit(True)
+
+                global_idx = rw.AddAtom(atom_to_add)
                 old_pos = ligand_conf.GetAtomPosition(atom.GetIdx())
                 coords[global_idx] = (
                     old_pos.x - donor_pos.x + target[0],

@@ -16,6 +16,7 @@ Supported formats:
 import re
 from dataclasses import dataclass, field
 from typing import Optional
+from .hsab import choose_ambidentate_donor
 
 
 # ---------------------------------------------------------------------------

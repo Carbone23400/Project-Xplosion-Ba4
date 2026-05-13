@@ -393,3 +393,30 @@ class TestBenchmarkComplexes:
         r = parse("[Fe(CN)6]3-")
         assert r.oxidation_state == 3
         assert r.coordination_number == 6
+
+
+# ===========================================================================
+# 11. HSAB ambidentate donor assignment
+# ===========================================================================
+
+class TestHSABDonorAssignment:
+    def test_dmso_binds_through_oxygen_for_hard_metal(self):
+        r = parse("[Fe(dmso)6]3+")
+
+        assert r.oxidation_state == 3
+        assert r.donor_atoms["dmso"] == "O"
+        assert any("HSAB" in warning for warning in r.warnings)
+
+    def test_dmso_binds_through_sulfur_for_soft_metal(self):
+        r = parse("[Pt(dmso)4]2+")
+
+        assert r.oxidation_state == 2
+        assert r.donor_atoms["dmso"] == "S"
+        assert any("HSAB" in warning for warning in r.warnings)
+
+    def test_dmso_is_marked_ambiguous_for_borderline_metal(self):
+        r = parse("[Ni(dmso)6]2+")
+
+        assert r.oxidation_state == 2
+        assert r.donor_atoms["dmso"] == "S/O"
+        assert any("ambiguous" in warning for warning in r.warnings)

@@ -1,2 +1,2 @@
-from .predictor import predict_spectrum, PredictionResult
+from .predictor import PredictionResult, predict_ir, predict_raman, predict_spectrum
 from .renderer  import plot_spectrum, build_spectrum
