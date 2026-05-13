@@ -105,7 +105,6 @@ BACKBONDING_SHIFTS: dict[tuple, float] = {
 }
 
 # Coordination shifts — how much a band moves when a free ligand coordinates.
-# Negative = redshift (moves to lower wavenumber).
 # Source: Nakamoto Vol.2 Chapter 2
 
 COORDINATION_SHIFTS: dict[tuple, float] = {
