@@ -8,7 +8,6 @@ build-backend = "setuptools.build_meta"
 # check out https://github.com/pypa/setuptools_scm
 version_scheme = "no-guess-dev"
 
-
 [project]
 name = "CoordAnalyst"
 authors = [{name = "Claire Bachmann", email = "claire.bachmann@epfl.ch"}, {name = "Bertille Delloye", email = "bertille.delloye@epfl.ch"}, {name = "Enea Drezet--Marcot", email = "enea.drezet-marcot@epfl.ch"}, {name = "Victor Davril", email = "victor.davril@epfl.ch"}]

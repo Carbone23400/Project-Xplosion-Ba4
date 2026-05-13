@@ -16,11 +16,14 @@ import pytest
 
 from coordchem.viz.diagram_2d import (
     H2_ANNOTATION_PROP,
+    _drawing_variants,
     build_coordination_mol,
     diagram_2d_svg,
     save_diagram_2d,
 )
+from coordchem.parser import parse_formula
 from coordchem.viz.ligand_data import LIGAND_SMILES
+from coordchem.viz.transform_2d import ACAC_COORDINATION_SCALE
 
 
 # ============================================================================
@@ -31,6 +34,32 @@ SQUARE_PLANAR_COMPLEX = "[PtCl4]2-"
 TETRAAMMINE_COMPLEX = "[Cu(NH3)4]2+"
 OCTAHEDRAL_COMPLEX = "[Fe(CN)6]4-"
 INVALID_COMPLEX = "not a complex"
+
+
+def _metal_bond_sites_by_label(mol):
+    conf = mol.GetConformer()
+    sites = []
+
+    for bond in mol.GetBonds():
+        if 0 not in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}:
+            continue
+
+        other = bond.GetOtherAtomIdx(0)
+        atom = mol.GetAtomWithIdx(other)
+        pos = conf.GetAtomPosition(other)
+        label = (
+            atom.GetProp("atomLabel")
+            if atom.HasProp("atomLabel")
+            else atom.GetSymbol()
+        )
+        sites.append((
+            label,
+            round(pos.x, 2),
+            round(pos.y, 2),
+            str(bond.GetBondDir()),
+        ))
+
+    return sites
 
 
 # ============================================================================
@@ -290,6 +319,196 @@ def test_en_svg_adds_h2_annotations_next_to_n_donors():
     assert "coordchem-h2-label" not in svg
     assert ">H2</text>" not in svg
     assert "baseline-shift" not in svg
+
+
+def test_mixed_octahedral_polydentate_ligands_reserve_chelate_sites_first():
+    mol = build_coordination_mol("[CoCl2(en)2]+")
+    conf = mol.GetConformer()
+
+    n_sites = set()
+    cl_sites = set()
+    for bond in mol.GetBonds():
+        if 0 not in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}:
+            continue
+
+        other = bond.GetOtherAtomIdx(0)
+        atom = mol.GetAtomWithIdx(other)
+        pos = conf.GetAtomPosition(other)
+        site = (round(pos.x, 2), round(pos.y, 2))
+
+        if atom.GetSymbol() == "N":
+            n_sites.add(site)
+        elif atom.GetSymbol() == "Cl":
+            cl_sites.add(site)
+
+    assert n_sites == {
+        (-3.0, 1.7),
+        (0.0, 3.5),
+        (3.0, 1.7),
+        (3.0, -1.7),
+    }
+    assert cl_sites == {
+        (0.0, -3.5),
+        (-3.0, -1.7),
+    }
+
+
+def test_mixed_octahedral_single_bidentate_reserves_first_chelate_pair():
+    mol = build_coordination_mol("[Co(en)(NH3)4]3+")
+    sites = _metal_bond_sites_by_label(mol)
+
+    en_sites = {
+        (x, y)
+        for label, x, y, _ in sites
+        if label == "N"
+    }
+    ammine_sites = {
+        (x, y)
+        for label, x, y, _ in sites
+        if label in {"NH3", "H3N"}
+    }
+
+    assert en_sites == {
+        (-3.0, 1.7),
+        (0.0, 3.5),
+    }
+    assert ammine_sites == {
+        (3.0, 1.7),
+        (3.0, -1.7),
+        (0.0, -3.5),
+        (-3.0, -1.7),
+    }
+
+
+@pytest.mark.parametrize(
+    ("formula", "donor_symbol"),
+    [
+        ("[Co(ox)2Cl2]3-", "O"),
+        ("[Ru(bipy)2Cl2]", "N"),
+    ],
+)
+def test_mixed_octahedral_bidentate_ligand_types_reserve_chelate_sites(
+    formula,
+    donor_symbol,
+):
+    mol = build_coordination_mol(formula)
+    sites = _metal_bond_sites_by_label(mol)
+
+    donor_sites = {
+        (x, y)
+        for label, x, y, _ in sites
+        if label == donor_symbol
+    }
+    chloro_sites = {
+        (x, y)
+        for label, x, y, _ in sites
+        if label == "Cl"
+    }
+
+    assert donor_sites == {
+        (-3.0, 1.7),
+        (0.0, 3.5),
+        (3.0, 1.7),
+        (3.0, -1.7),
+    }
+    assert chloro_sites == {
+        (0.0, -3.5),
+        (-3.0, -1.7),
+    }
+
+
+def test_mixed_octahedral_acac_ligands_keep_chelate_directions_when_scaled():
+    mol = build_coordination_mol("[Co(acac)2Cl2]-")
+    sites = _metal_bond_sites_by_label(mol)
+
+    acac_donor_sites = {
+        (x, y)
+        for label, x, y, _ in sites
+        if label == "O"
+    }
+    chloro_sites = {
+        (x, y)
+        for label, x, y, _ in sites
+        if label == "Cl"
+    }
+
+    assert acac_donor_sites == {
+        (
+            round(-3.0 * ACAC_COORDINATION_SCALE, 2),
+            round(1.7 * ACAC_COORDINATION_SCALE, 2),
+        ),
+        (0.0, round(3.5 * ACAC_COORDINATION_SCALE, 2)),
+        (
+            round(3.0 * ACAC_COORDINATION_SCALE, 2),
+            round(1.7 * ACAC_COORDINATION_SCALE, 2),
+        ),
+        (
+            round(3.0 * ACAC_COORDINATION_SCALE, 2),
+            round(-1.7 * ACAC_COORDINATION_SCALE, 2),
+        ),
+    }
+    assert chloro_sites == {
+        (0.0, -3.5),
+        (-3.0, -1.7),
+    }
+
+
+def test_mixed_octahedral_tridentate_ligand_reserves_tridentate_sites():
+    mol = build_coordination_mol("[Fe(tpy)Cl3]")
+    sites = _metal_bond_sites_by_label(mol)
+
+    tpy_sites = {
+        (x, y)
+        for label, x, y, _ in sites
+        if label == "N"
+    }
+    chloro_sites = {
+        (x, y)
+        for label, x, y, _ in sites
+        if label == "Cl"
+    }
+
+    assert tpy_sites == {
+        (-2.94, 1.7),
+        (0.0, 3.4),
+        (2.94, 1.7),
+    }
+    assert chloro_sites == {
+        (2.94, -1.7),
+        (0.0, -3.4),
+        (-2.94, -1.7),
+    }
+
+
+def test_mixed_octahedral_two_different_bidentates_and_monodentates():
+    mol = build_coordination_mol("[Co(en)(ox)Cl(NH3)]")
+
+    assert _metal_bond_sites_by_label(mol) == [
+        ("N", -3.0, 1.7, "BEGINDASH"),
+        ("N", 0.0, 3.5, "NONE"),
+        ("O", 3.0, 1.7, "BEGINDASH"),
+        ("O", 3.0, -1.7, "BEGINWEDGE"),
+        ("Cl", 0.0, -3.5, "NONE"),
+        ("H3N", -3.0, -1.7, "BEGINWEDGE"),
+    ]
+
+
+def test_octahedral_three_different_bidentates_use_chelate_site_pairs():
+    mol = build_coordination_mol("[Co(en)(ox)(acac)]")
+
+    assert _metal_bond_sites_by_label(mol) == [
+        ("N", -3.0, 1.7, "BEGINDASH"),
+        ("N", 0.0, 3.5, "NONE"),
+        ("O", 3.0, 1.7, "BEGINDASH"),
+        ("O", 3.0, -1.7, "BEGINWEDGE"),
+        ("O", 0.0, round(-3.5 * ACAC_COORDINATION_SCALE, 2), "NONE"),
+        (
+            "O",
+            round(-3.0 * ACAC_COORDINATION_SCALE, 2),
+            round(-1.7 * ACAC_COORDINATION_SCALE, 2),
+            "BEGINWEDGE",
+        ),
+    ]
 
 
 def test_edta_projection_has_two_wedges_two_dashes_and_two_plain_bonds():
@@ -621,8 +840,9 @@ def test_acac_projection_keeps_plain_bonds_vertical():
                 pos = conf.GetAtomPosition(other)
                 plain_sites.append((round(pos.x, 2), round(pos.y, 2)))
 
-    assert (0.0, 3.5) in plain_sites
-    assert (0.0, -3.5) in plain_sites
+    plain_y = round(3.5 * ACAC_COORDINATION_SCALE, 2)
+    assert (0.0, plain_y) in plain_sites
+    assert (0.0, -plain_y) in plain_sites
 
 
 def test_acac_binds_through_oxygen_atoms():
@@ -637,6 +857,41 @@ def test_acac_binds_through_oxygen_atoms():
     assert donor_symbols == ["O", "O", "O", "O", "O", "O"]
 
 
+def test_acac_uniform_shrink_keeps_metal_donor_directions():
+    mol = build_coordination_mol("[Co(acac)3]")
+    conf = mol.GetConformer()
+
+    expected_sites = {
+        (
+            round(-3.0 * ACAC_COORDINATION_SCALE, 2),
+            round(1.7 * ACAC_COORDINATION_SCALE, 2),
+        ),
+        (0.0, round(3.5 * ACAC_COORDINATION_SCALE, 2)),
+        (
+            round(3.0 * ACAC_COORDINATION_SCALE, 2),
+            round(1.7 * ACAC_COORDINATION_SCALE, 2),
+        ),
+        (
+            round(3.0 * ACAC_COORDINATION_SCALE, 2),
+            round(-1.7 * ACAC_COORDINATION_SCALE, 2),
+        ),
+        (0.0, round(-3.5 * ACAC_COORDINATION_SCALE, 2)),
+        (
+            round(-3.0 * ACAC_COORDINATION_SCALE, 2),
+            round(-1.7 * ACAC_COORDINATION_SCALE, 2),
+        ),
+    }
+
+    donor_sites = set()
+    for bond in mol.GetBonds():
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}:
+            donor_idx = bond.GetOtherAtomIdx(0)
+            pos = conf.GetAtomPosition(donor_idx)
+            donor_sites.add((round(pos.x, 2), round(pos.y, 2)))
+
+    assert donor_sites == expected_sites
+
+
 def test_acac_uses_enolate_bond_pattern():
     from rdkit import Chem
 
@@ -646,3 +901,52 @@ def test_acac_uses_enolate_bond_pattern():
     assert mol.GetBondBetweenAtoms(3, 4).GetBondType() == Chem.BondType.DOUBLE
     assert mol.GetBondBetweenAtoms(4, 5).GetBondType() == Chem.BondType.SINGLE
     assert mol.GetAtomWithIdx(5).GetFormalCharge() == 0
+
+
+def _metal_donor_symbols(mol):
+    symbols = []
+    for bond in mol.GetBonds():
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}:
+            donor_idx = bond.GetOtherAtomIdx(0)
+            symbols.append(mol.GetAtomWithIdx(donor_idx).GetSymbol())
+    return symbols
+
+
+def test_dmso_2d_uses_oxygen_donor_for_hard_metal():
+    mol = build_coordination_mol("[Fe(dmso)6]3+")
+
+    assert _metal_donor_symbols(mol) == ["O"] * 6
+
+
+def test_dmso_2d_uses_sulfur_donor_for_soft_metal():
+    mol = build_coordination_mol("[Pt(dmso)4]2+")
+
+    assert _metal_donor_symbols(mol) == ["S"] * 4
+
+
+def test_dmso_2d_sulfur_donor_has_no_implicit_hydrogen():
+    mol = build_coordination_mol("[Pt(dmso)4]2+")
+
+    sulfur_donors = []
+    for bond in mol.GetBonds():
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}:
+            donor = mol.GetAtomWithIdx(bond.GetOtherAtomIdx(0))
+            if donor.GetSymbol() == "S":
+                sulfur_donors.append(donor)
+
+    assert len(sulfur_donors) == 4
+    assert all(atom.GetNumExplicitHs() == 0 for atom in sulfur_donors)
+    assert all(atom.GetNoImplicit() for atom in sulfur_donors)
+
+
+def test_ambiguous_dmso_svg_draws_s_and_o_bound_panels():
+    parsed = parse_formula("[Ni(dmso)6]2+")
+    variants = _drawing_variants(parsed, ["octahedral"])
+    svg = diagram_2d_svg(parsed)
+
+    assert [legend for _, _, legend in variants] == ["octahedral", "octahedral"]
+    assert [variant.donor_atoms["dmso"] for variant, _, _ in variants] == ["S", "O"]
+    assert "width='350.0' height='700.0' x='0.0'" in svg
+    assert "hexadimethylsulfoxidenickel(II)" in svg
+    assert "DMSO-S" not in svg
+    assert "DMSO-O" not in svg

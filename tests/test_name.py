@@ -105,3 +105,12 @@ class TestParseName:
         assert result.oxidation_state == 2
         assert result.complex_charge == -4
         assert result.coordination_number == 6
+
+    def test_parse_dmso_name_applies_hsab_after_oxidation_state(self):
+        result = parse_name("hexakisdimethylsulfoxideiron(III)")
+
+        assert result.ligands == {"dmso": 6}
+        assert result.oxidation_state == 3
+        assert result.donor_atoms["dmso"] == "O"
+        assert result.complex_charge == 3
+        assert result.coordination_number == 6

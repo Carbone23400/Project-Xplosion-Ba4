@@ -5,6 +5,7 @@ import re
 
 from .parser import KNOWN_LIGANDS
 from .parser import ParsedComplex
+from .parser import _apply_ambidentate_donor_assignments
 from .parser import _enrich
 
 
@@ -149,6 +150,7 @@ def parse_name(name: str) -> ParsedComplex:
      if oxidation_state is not None:
           result.oxidation_state=oxidation_state
           result.complex_charge=oxidation_state + result.total_ligand_charge
+          _apply_ambidentate_donor_assignments(result)
      return result
 
 

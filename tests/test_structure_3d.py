@@ -123,10 +123,49 @@ class TestBuildComplex:
         ]
         assert len(dative_bonds) == 4
 
+    def test_dmso_hard_metal_uses_oxygen_donor(self):
+        parsed = parse_formula("[Fe(dmso)6]3+")
+        mol = build_complex_3d(parsed)
+
+        donor_symbols = _metal_donor_symbols(mol)
+        assert donor_symbols == ["O"] * 6
+
+    def test_dmso_soft_metal_uses_sulfur_donor(self):
+        parsed = parse_formula("[Pt(dmso)4]2+")
+        mol = build_complex_3d(parsed)
+
+        donor_symbols = _metal_donor_symbols(mol)
+        assert donor_symbols == ["S"] * 4
+
+    def test_dmso_3d_sulfur_donor_has_no_hydrogen_neighbor(self):
+        parsed = parse_formula("[Pt(dmso)4]2+")
+        mol = build_complex_3d(parsed)
+
+        sulfur_donors = [
+            mol.GetAtomWithIdx(bond.GetOtherAtomIdx(0))
+            for bond in mol.GetAtomWithIdx(0).GetBonds()
+            if mol.GetAtomWithIdx(bond.GetOtherAtomIdx(0)).GetSymbol() == "S"
+        ]
+
+        assert len(sulfur_donors) == 4
+        assert all(
+            all(neighbor.GetSymbol() != "H" for neighbor in atom.GetNeighbors())
+            for atom in sulfur_donors
+        )
+
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _metal_donor_symbols(mol):
+    metal_atom = mol.GetAtomWithIdx(0)
+    return [
+        mol.GetAtomWithIdx(bond.GetOtherAtomIdx(0)).GetSymbol()
+        for bond in metal_atom.GetBonds()
+        if bond.GetBondType() == Chem.BondType.DATIVE
+    ]
+
 
 def pytest_approx(value, rel=1e-6, abs_=1e-6):
     return pytest.approx(value, rel=rel, abs=abs_)

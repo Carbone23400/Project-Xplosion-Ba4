@@ -75,6 +75,25 @@ LIGAND_DONOR_INDEX_OVERRIDES: dict[str, tuple[int, ...]] = {
 }
 
 
+def donor_index_overrides_for_ligand(
+    ligand_symbol: str,
+    donor_info: str | None = None,
+) -> tuple[int, ...]:
+    """Return explicit RDKit donor indices, including donor-dependent DMSO."""
+    if ligand_symbol.lower() == "dmso":
+        donor_candidates = [
+            part.strip()
+            for part in str(donor_info or "S").split("/")
+            if part.strip()
+        ]
+        donor = donor_candidates[0] if donor_candidates else "S"
+        if donor == "O":
+            return (2,)
+        return (1,)
+
+    return LIGAND_DONOR_INDEX_OVERRIDES.get(ligand_symbol, ())
+
+
 EXPLICIT_H_LIGANDS: set[str] = set()
 
 

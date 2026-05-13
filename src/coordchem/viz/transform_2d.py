@@ -11,6 +11,9 @@ from math import atan2, cos, sin, sqrt
 from .layout_2d import Site
 
 
+ACAC_COORDINATION_SCALE = 0.78
+
+
 def dist(x: float, y: float) -> float:
     return sqrt(x * x + y * y)
 
@@ -208,7 +211,10 @@ def transform_acac(
             x, y = adjusted[6]
             adjusted[6] = (x + 0.30, y + 0.45)
 
-    return adjusted
+    return {
+        idx: (x * ACAC_COORDINATION_SCALE, y * ACAC_COORDINATION_SCALE)
+        for idx, (x, y) in adjusted.items()
+    }
 
 
 def transform_oxalate(

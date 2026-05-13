@@ -198,6 +198,71 @@ def should_use_chelate_layout(
     return all(parsed.ligand_denticity.get(ligand, 1) == 2 for ligand in ligand_items)
 
 
+def should_use_mixed_polydentate_layout(
+    parsed: ParsedComplex,
+    ligand_items: list[str],
+    geometry: str,
+) -> bool:
+    """Return True when polydentate ligands should reserve sites first."""
+    if not ligand_items:
+        return False
+
+    denticities = [parsed.ligand_denticity.get(ligand, 1) for ligand in ligand_items]
+    has_polydentate = any(denticity > 1 for denticity in denticities)
+    has_monodentate = any(denticity == 1 for denticity in denticities)
+
+    if not (has_polydentate and has_monodentate):
+        return False
+
+    return True
+
+
+def mixed_polydentate_site_groups(
+    parsed: ParsedComplex,
+    ligand_items: list[str],
+    geometry: str,
+) -> list[tuple[Site, ...]]:
+    """Assign polydentate ligand sites first, then fill monodentate sites."""
+    denticities = [parsed.ligand_denticity.get(ligand, 1) for ligand in ligand_items]
+    n_sites = sum(denticities)
+    normalized_geometry = geometry.lower().strip()
+
+    if (
+        normalized_geometry == "octahedral"
+        and n_sites == 6
+        and any(denticity == 3 for denticity in denticities)
+    ):
+        sites = tridentate_octahedral_sites(2)
+    elif (
+        normalized_geometry == "octahedral"
+        and n_sites == 6
+        and any(denticity == 2 for denticity in denticities)
+    ):
+        sites = chelate_octahedral_sites(3)
+    else:
+        sites = coordination_sites(geometry, n_sites)
+
+    groups: list[tuple[Site, ...] | None] = [None] * len(ligand_items)
+    site_cursor = 0
+
+    ligand_order = [
+        index
+        for index, denticity in enumerate(denticities)
+        if denticity > 1
+    ] + [
+        index
+        for index, denticity in enumerate(denticities)
+        if denticity == 1
+    ]
+
+    for index in ligand_order:
+        denticity = denticities[index]
+        groups[index] = tuple(sites[site_cursor: site_cursor + denticity])
+        site_cursor += denticity
+
+    return [group for group in groups if group is not None]
+
+
 def should_use_tridentate_layout(
     parsed: ParsedComplex,
     ligand_items: list[str],
@@ -248,6 +313,8 @@ __all__ = [
     "tridentate_octahedral_sites",
     "edta_octahedral_sites",
     "should_use_chelate_layout",
+    "should_use_mixed_polydentate_layout",
+    "mixed_polydentate_site_groups",
     "should_use_tridentate_layout",
     "should_use_edta_layout",
     "regular_polygon_sites",

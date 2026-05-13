@@ -312,15 +312,16 @@ def predict_spectrum(
     -------
     PredictionResult
     """
-    # Normalise spectrum type to match database values exactly
-    if spectrum_type.upper() == "IR":
-        spectrum_type = "IR"
-    elif spectrum_type.upper() == "RAMAN":
-        spectrum_type = "Raman"
+    # ------------------------------------------------------------------
+    # Validate inputs
+    # ------------------------------------------------------------------
+    spectrum_type = spectrum_type.upper()
+    if spectrum_type == "IR":
+        query_spectrum_type = "IR"
+    elif spectrum_type == "RAMAN":
+        query_spectrum_type = "Raman"
     else:
-        raise ValueError(
-            f"spectrum_type must be 'IR' or 'Raman', got '{spectrum_type}'"
-        )
+        raise ValueError(f"spectrum_type must be 'IR' or 'Raman', got '{spectrum_type}'")
 
     close_db = False
     if db is None:
@@ -335,8 +336,10 @@ def predict_spectrum(
 
     # Geometry needed for selection rules
     try:
-        report   = geometry_report(parsed)
-        geometry = report["geometry"]
+        geometry = getattr(parsed, "geometry", None)
+        if geometry is None:
+            report = geometry_report(parsed)
+            geometry = report["geometry"]
     except Exception:
         geometry = None   # if geometry fails, selection rules are skipped
 
@@ -344,7 +347,7 @@ def predict_spectrum(
 
         bands = db.get_bands(
             ligand        = ligand_formula,
-            spectrum_type = spectrum_type,
+            spectrum_type = query_spectrum_type,
             metal         = parsed.metal,
         )
 
@@ -543,3 +546,13 @@ def _scale_intensity(intensity_label: str, ligand_count: int) -> float:
     """Convert intensity label to number and scale by ligand count."""
     base = INTENSITY_SCALE.get(intensity_label, 0.5)
     return base * ligand_count
+
+
+def predict_ir(parsed: ParsedComplex, db: Optional[IRBandDB] = None) -> PredictionResult:
+    """Predict the IR spectrum for a parsed coordination complex."""
+    return predict_spectrum(parsed, spectrum_type="IR", db=db)
+
+
+def predict_raman(parsed: ParsedComplex, db: Optional[IRBandDB] = None) -> PredictionResult:
+    """Predict the Raman spectrum for a parsed coordination complex."""
+    return predict_spectrum(parsed, spectrum_type="RAMAN", db=db)

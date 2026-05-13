@@ -6,6 +6,7 @@ Advanced 2D drawing for coordination complexes using RDKit.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from html import escape
 from importlib import import_module
 from math import cos, pi, sin
@@ -20,8 +21,10 @@ from .layout_2d import (
     chelate_octahedral_sites,
     coordination_sites,
     edta_octahedral_sites,
+    mixed_polydentate_site_groups,
     should_use_chelate_layout,
     should_use_edta_layout,
+    should_use_mixed_polydentate_layout,
     should_use_tridentate_layout,
     tridentate_octahedral_sites,
 )
@@ -29,10 +32,10 @@ from .ligand_data import (
     ABBREVIATED_MONODENTATE_LIGANDS,
     EXPLICIT_H_LIGANDS,
     INTERRUPTED_LIGAND_BONDS,
-    LIGAND_DONOR_INDEX_OVERRIDES,
     LIGAND_SMILES,
     MONODENTATE_DISPLAY_LABELS,
     POLYDENTATE_DONOR_DISPLAY_LABELS,
+    donor_index_overrides_for_ligand,
 )
 from .transform_2d import (
     transform_acac,
@@ -97,6 +100,34 @@ def _expand_ligands(parsed: ParsedComplex) -> list[str]:
     for ligand, count in parsed.ligands.items():
         ligands.extend([ligand] * count)
     return ligands
+
+
+def _site_groups_for_ligands(
+    parsed: ParsedComplex,
+    ligand_items: list[str],
+    geometry: str,
+) -> list[tuple[Site, ...]]:
+    """Return coordination sites grouped by ligand in ligand_items order."""
+    n_sites = sum(parsed.ligand_denticity.get(lig, 1) for lig in ligand_items)
+
+    if should_use_edta_layout(parsed, ligand_items, geometry):
+        sites = edta_octahedral_sites()
+    elif should_use_tridentate_layout(parsed, ligand_items, geometry):
+        sites = tridentate_octahedral_sites(len(ligand_items))
+    elif should_use_chelate_layout(parsed, ligand_items, geometry):
+        sites = chelate_octahedral_sites(len(ligand_items))
+    elif should_use_mixed_polydentate_layout(parsed, ligand_items, geometry):
+        return mixed_polydentate_site_groups(parsed, ligand_items, geometry)
+    else:
+        sites = coordination_sites(geometry, n_sites)
+
+    groups: list[tuple[Site, ...]] = []
+    site_cursor = 0
+    for ligand_symbol in ligand_items:
+        denticity = parsed.ligand_denticity.get(ligand_symbol, 1)
+        groups.append(tuple(sites[site_cursor: site_cursor + denticity]))
+        site_cursor += denticity
+    return groups
 
 
 def _make_ligand_mol(ligand_symbol: str) -> Chem.Mol:
@@ -200,8 +231,11 @@ def _match_donor_indices(
     mol: Chem.Mol,
 ) -> tuple[int, ...]:
     """Determine donor atom indices for a ligand molecule."""
-    override = LIGAND_DONOR_INDEX_OVERRIDES.get(ligand_symbol)
-    if override is not None:
+    override = donor_index_overrides_for_ligand(
+        ligand_symbol,
+        parsed.donor_atoms.get(ligand_symbol),
+    )
+    if override:
         return override
 
     donor_info = parsed.donor_atoms.get(ligand_symbol, "?")
@@ -273,16 +307,7 @@ def build_coordination_mol(
     parsed = parse_complex_input(complex_input)
     geometry = geometry_override or get_geometry(parsed)
     ligand_items = _expand_ligands(parsed)
-    n_sites = sum(parsed.ligand_denticity.get(lig, 1) for lig in ligand_items)
-
-    if should_use_edta_layout(parsed, ligand_items, geometry):
-        sites = edta_octahedral_sites()
-    elif should_use_tridentate_layout(parsed, ligand_items, geometry):
-        sites = tridentate_octahedral_sites(len(ligand_items))
-    elif should_use_chelate_layout(parsed, ligand_items, geometry):
-        sites = chelate_octahedral_sites(len(ligand_items))
-    else:
-        sites = coordination_sites(geometry, n_sites)
+    site_groups = _site_groups_for_ligands(parsed, ligand_items, geometry)
 
     rw = Chem.RWMol()
     metal_atom = Chem.Atom(parsed.metal)
@@ -290,9 +315,8 @@ def build_coordination_mol(
     metal_idx = rw.AddAtom(metal_atom)
 
     global_coords: dict[int, tuple[float, float]] = {metal_idx: (0.0, 0.0)}
-    site_cursor = 0
 
-    for ligand_symbol in ligand_items:
+    for ligand_symbol, anchors in zip(ligand_items, site_groups):
         denticity_from_parser = parsed.ligand_denticity.get(ligand_symbol, 1)
 
         # Compact labels for monodentate ligands
@@ -300,12 +324,10 @@ def build_coordination_mol(
             denticity_from_parser == 1
             and ligand_symbol in ABBREVIATED_MONODENTATE_LIGANDS
         ):
-            anchors = tuple(sites[site_cursor: site_cursor + 1])
             if len(anchors) != 1:
                 raise ValueError(
                     f"Not enough coordination sites for '{ligand_symbol}'."
                 )
-            site_cursor += 1
 
             anchor = anchors[0]
             ligand_idx = rw.AddAtom(
@@ -328,10 +350,8 @@ def build_coordination_mol(
         donor_indices = _match_donor_indices(parsed, ligand_symbol, lig_mol)
         denticity = len(donor_indices)
 
-        anchors = tuple(sites[site_cursor: site_cursor + denticity])
         if len(anchors) != denticity:
             raise ValueError(f"Not enough coordination sites for '{ligand_symbol}'.")
-        site_cursor += denticity
 
         if ligand_symbol == "acac" and denticity == 2:
             transformed = transform_acac(
@@ -376,6 +396,9 @@ def build_coordination_mol(
                 )
 
             new_atom = _copy_atom(atom, atom_label=atom_label)
+            if ligand_symbol == "dmso" and local_idx in donor_indices:
+                new_atom.SetNumExplicitHs(0)
+                new_atom.SetNoImplicit(True)
             if ligand_symbol == "en" and local_idx in donor_indices:
                 new_atom.SetProp(H2_ANNOTATION_PROP, "1")
             if ligand_symbol == "ox":
@@ -455,6 +478,54 @@ def _geometry_options(geometry: str) -> list[str]:
             options.append(clean)
 
     return options or [geometry]
+
+
+def _ambidentate_donor_options(parsed: ParsedComplex) -> dict[str, list[str]]:
+    """Return donor alternatives for ligands with unresolved donor choices."""
+    options: dict[str, list[str]] = {}
+    for ligand_symbol, donor_info in parsed.donor_atoms.items():
+        if ligand_symbol.lower() != "dmso":
+            continue
+
+        donors = [
+            donor.strip()
+            for donor in str(donor_info).split("/")
+            if donor.strip()
+        ]
+        if len(donors) > 1:
+            options[ligand_symbol] = donors
+
+    return options
+
+
+def _with_donor_override(
+    parsed: ParsedComplex,
+    ligand_symbol: str,
+    donor: str,
+) -> ParsedComplex:
+    """Return a shallow ParsedComplex copy with one ligand donor overridden."""
+    donor_atoms = dict(parsed.donor_atoms)
+    donor_atoms[ligand_symbol] = donor
+    return replace(parsed, donor_atoms=donor_atoms)
+
+
+def _drawing_variants(
+    parsed: ParsedComplex,
+    geometry_options: list[str],
+) -> list[tuple[ParsedComplex, str, str]]:
+    """Return parsed/geometry/legend variants to draw as panels."""
+    donor_options = _ambidentate_donor_options(parsed)
+    if not donor_options:
+        return [(parsed, geometry, geometry) for geometry in geometry_options]
+
+    variants: list[tuple[ParsedComplex, str, str]] = []
+    ligand_symbol, donors = next(iter(donor_options.items()))
+    for donor in donors:
+        donor_parsed = _with_donor_override(parsed, ligand_symbol, donor)
+        for geometry in geometry_options:
+            variants.append((donor_parsed, geometry, geometry))
+
+    return variants
 
 
 def _get_name_module():
@@ -799,6 +870,7 @@ def diagram_2d_svg(
     display_title = title if title is not None else _coordination_compound_name(parsed)
     ligand_items = _expand_ligands(parsed)
     geometry_options = _geometry_options(geometry)
+    drawing_variants = _drawing_variants(parsed, geometry_options)
 
     if _should_use_cp_sandwich_svg(parsed, ligand_items):
         return _cp_sandwich_svg(
@@ -813,9 +885,13 @@ def diagram_2d_svg(
         ligand_symbol in {"acac", "ox"} for ligand_symbol in ligand_items
     )
     mols = [
-        build_coordination_mol(parsed, geometry_override=option)
-        for option in geometry_options
+        build_coordination_mol(variant_parsed, geometry_override=variant_geometry)
+        for variant_parsed, variant_geometry, _ in drawing_variants
     ]
+    for mol in mols:
+        mol.UpdatePropertyCache(strict=False)
+        Chem.GetSymmSSSR(mol)
+    legends = [legend for _, _, legend in drawing_variants]
 
     if len(mols) == 1:
         drawer = rdMolDraw2D.MolDraw2DSVG(size, size)
@@ -835,15 +911,15 @@ def diagram_2d_svg(
         options.multipleBondOffset = 0.08
 
     if len(mols) == 1:
-        drawer.DrawMolecule(mols[0], legend=geometry, confId=0)
+        drawer.DrawMolecule(mols[0], legend=legends[0], confId=0)
     else:
-        drawer.DrawMolecules(mols, legends=geometry_options, confIds=[0] * len(mols))
+        drawer.DrawMolecules(mols, legends=legends, confIds=[0] * len(mols))
 
     h2_annotations = _h2_annotation_positions(drawer, mols, size)
     square_antiprismatic_frame = _square_antiprismatic_frame_svg(
         drawer,
         mols,
-        geometry_options,
+        legends,
     )
     _draw_h2_annotations(drawer, h2_annotations)
     drawer.FinishDrawing()
