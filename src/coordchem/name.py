@@ -4,9 +4,9 @@
 
 import re
 
-from coordchem.parser import KNOWN_LIGANDS
-from coordchem.parser import ParsedComplex
-from coordchem.parser import _enrich
+from .parser import KNOWN_LIGANDS
+from .parser import ParsedComplex
+from .parser import _enrich
 
 
 def ligand_data(name: str) -> dict[str, int]:
