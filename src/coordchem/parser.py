@@ -424,6 +424,8 @@ def _enrich(result: ParsedComplex) -> None:
     # → metal_charge = complex_charge − ligand_charge
     result.oxidation_state = result.complex_charge - total_ligand_charge
 
+    _apply_ambidentate_donor_assignments(result)
+
     # Sanity checks
     if result.coordination_number == 0:
         result.errors.append("Coordination number is 0 — no ligands were parsed.")
@@ -433,6 +435,25 @@ def _enrich(result: ParsedComplex) -> None:
             f"Unusual oxidation state: {result.oxidation_state}. "
             f"Double-check the formula and charge."
         )
+
+
+def _apply_ambidentate_donor_assignments(result: ParsedComplex) -> None:
+    """Apply metal-dependent donor choices for ambidentate ligands."""
+    result.warnings = [
+        warning for warning in result.warnings
+        if not warning.startswith("DMSO ")
+    ]
+
+    for lig_formula in result.ligands:
+        donor, warning = choose_ambidentate_donor(
+            lig_formula,
+            result.metal,
+            result.oxidation_state,
+        )
+        if donor is not None:
+            result.donor_atoms[lig_formula] = donor
+        if warning is not None:
+            result.warnings.append(warning)
 
 
 # ---------------------------------------------------------------------------
