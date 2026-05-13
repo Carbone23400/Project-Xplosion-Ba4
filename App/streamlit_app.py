@@ -109,7 +109,7 @@ st.subheader("3D Structure")
 render_3d_view(Complex(parsed))
 
 # Run predictor
-result    = predict_spectrum(parsed, spectrum_type=spectrum_type)
+result    = predict_spectrum(parsed, spectrum_type=spectrum_type, apply_corrections=True)
 all_bands = result.bands
 
 for w in result.warnings:
