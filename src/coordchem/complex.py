@@ -167,17 +167,7 @@ class Complex:
             self.parsed, width=width, height=height, distance=distance,
         )
 
-    def predict_ir(self):
-        """Return predicted IR spectrum object/data using the spectra module."""
-        from .spectra.predictor import predict_ir
 
-        return predict_ir(self.parsed)
-
-    def predict_raman(self):
-        """Return predicted Raman spectrum object/data using the spectra module."""
-        from .spectra.predictor import predict_raman
-
-        return predict_raman(self.parsed)
 
     def __str__(self) -> str:
         return str(self.parsed)
