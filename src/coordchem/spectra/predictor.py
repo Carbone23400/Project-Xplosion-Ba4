@@ -123,7 +123,7 @@ class PredictionResult:
             lines.append(
                 f"  {band.ligand:<8} {band.coordination:<12} "
                 f"{band.center:>14.0f}  "
-                f"{band.intensity:<14} {band.assignment}"
+                f"{intensity:<14} {band.assignment}"
             )
         if self.warnings:
             lines.append(f"")
