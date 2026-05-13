@@ -8,14 +8,11 @@ build-backend = "setuptools.build_meta"
 # check out https://github.com/pypa/setuptools_scm
 version_scheme = "no-guess-dev"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
 
 [project]
 name = "CoordAnalyst"
-authors = [{name = "Claire Bachmann", email = "claire.bachmann@epfl.ch"}, {name = "Bertille Delloye", email = "bertille.delloye@epfl.ch"}, {name = "Enea Drezet--Marcot", email = "enea.drezet-marcot@epfl.ch"}, {name = "Victor Davril", email = "victor.davril@epfl.ch"}],
-maintainers = [{name = "All the contributors"}],
+authors = [{name = "Claire Bachmann", email = "claire.bachmann@epfl.ch"}, {name = "Bertille Delloye", email = "bertille.delloye@epfl.ch"}, {name = "Enea Drezet--Marcot", email = "enea.drezet-marcot@epfl.ch"}, {name = "Victor Davril", email = "victor.davril@epfl.ch"}]
+maintainers = [{name = "All the contributors"}]
 description = "an educational tool helping students predict oxidation, geometry, number of d electrons, and other properties of a coordination complex as well as visualize it in 2D, 3D and draw a reliable IR and Raman spectra from streches in databases for common ligands"
 keywords = ["coordination chemistry", "IR spectra", "Raman spectra", "metal and ligands properties", "educational"]
 readme = "README.md"

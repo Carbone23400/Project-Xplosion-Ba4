@@ -8,8 +8,8 @@ Run with: python -m pytest tests/test_geometry.py -v
 
 import pytest
 
-from coordchem.parser import parse_formula
-from coordchem.geometry import get_geometry, predict_geometry, geometry_report, get_d_count
+from src.coordchem.parser import parse_formula
+from src.coordchem.geometry import get_geometry, predict_geometry, geometry_report, get_d_count
 
 # ===========================================================================
 # Helper
