@@ -936,7 +936,7 @@ def build_complex_3d(
                 if bidentate_index >= len(site_pairs):
                     break
 
-                target_sites = (sites[site_index],sites[site_index+1])
+                target_sites = site_pairs[bidentate_index]
                 donor_indices = donor_overrides[:2]
 
                 local_coords = translate_bidentate_ligand(

@@ -115,11 +115,13 @@ PREFIXE={"di":2,"bi":2,"tri":3,"tetra":4,"penta":5,"hexa":6,"hepta":7,"octa":8,"
 
 
 def extract_complex_charge_from_name(name: str) -> int | None:
-   match = re.search(r'\((.*?)\)', name)
-   if not match:
-        return None
-   roman = match.group(1).upper()
-   return ROMAN_NUMBER.get(roman)
+   for content in re.findall(r"\(([^)]*)\)", name):
+        token = content.strip().upper()
+        if token == "0":
+            return 0
+        if token in ROMAN_NUMBER:
+            return ROMAN_NUMBER[token]
+   return None
 
 def metal_data(name: str) -> str:
         name = _normalize_name(name)
@@ -156,5 +158,5 @@ def parse_name(name: str) -> ParsedComplex:
 
 def _normalize_name(name: str) -> str:
      """Normalize a coordination compound name for simple substring matching."""
-     return re.sub(r"[\s_-]+", "", name).lower()
+     return re.sub(r"[\s_\-()]+", "", name).lower()
 
