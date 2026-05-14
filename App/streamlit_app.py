@@ -73,8 +73,12 @@ with st.sidebar:
         "NO N₃ en ox acac py dmso PPh₃"
     )
 
+if not user_input.strip():
+    st.info("Enter a formula or name in the sidebar and click **Analyze**.")
+    st.stop()
+
 # Parse formula
-from coordchem.name import parse_name   
+from coordchem.name import parse_name
 
 try:
     if input_mode == "Formula":
@@ -95,25 +99,27 @@ for w in parsed.warnings:
 
 # Complex info
 st.subheader("Complex Information")
+c1, c2, c3, c4, c5 = st.columns(5)
 ox = parsed.oxidation_state
-st.write(
-    f"**Metal:** {parsed.metal}  |  "
-    f"**Oxidation state:** {'+' + str(ox) if ox and ox > 0 else ox}  |  "
-    f"**Coordination number:** {parsed.coordination_number}  |  "
-    f"**d-count:** {report['d_count'] if report['d_count'] is not None else '—'}  |  "
-    f"**Geometry:** {report['geometry']}"
-)
+c1.metric("Metal",           parsed.metal)
+c2.metric("Oxidation State", f"+{ox}" if ox and ox > 0 else str(ox))
+c3.metric("Coord. Number",   parsed.coordination_number)
+c4.metric("d-count",         report["d_count"] if report["d_count"] is not None else "—")
+c5.metric("Geometry",        report["geometry"])
 
-st.markdown("**Ligands:**")
-for lig, count in parsed.ligands.items():
-    name   = parsed.ligand_names.get(lig, lig)
-    charge = parsed.ligand_charges.get(lig, 0)
-    dent   = parsed.ligand_denticity.get(lig, 1)
-    donor  = parsed.donor_atoms.get(lig, "?")
-    st.write(
-        f"- {count}× **{lig}** ({name}) — "
-        f"charge {charge:+d}, denticity {dent}, donor atom: {donor}"
-    )
+with st.expander("Ligand details", expanded=True):
+    lig_rows = []
+    for lig, count in parsed.ligands.items():
+        charge = parsed.ligand_charges.get(lig, 0)
+        lig_rows.append({
+            "Formula":    lig,
+            "Count":      str(count),
+            "Name":       parsed.ligand_names.get(lig, lig),
+            "Charge":     f"+{charge}" if charge > 0 else str(charge),
+            "Denticity":  str(parsed.ligand_denticity.get(lig, 1)),
+            "Donor atom": parsed.donor_atoms.get(lig, "?"),
+        })
+    st.dataframe(pd.DataFrame(lig_rows), use_container_width=True, hide_index=True)
 
 # 3D view
 st.subheader("3D Structure")
