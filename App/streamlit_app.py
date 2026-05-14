@@ -47,7 +47,7 @@ def render_3d_view(complex_obj: Complex, width: int = 500, height: int = 400):
 # ---------------------------------------------------------------------------
 
 st.set_page_config(page_title="CoordAnalyst", page_icon="⚛️", layout="centered")
-st.title("⚛️ CoordAnalyst — Coordination Complex Spectra Predictor")
+st.title("CoordAnalyst : Coordination Complex Spectra Predictor")
 st.caption("Educational tool · ±20–50 cm⁻¹ accuracy · data from Nakamoto 6th ed.")
 
 input_mode = st.radio("Input mode", ["Formula", "Name"], horizontal=True)
