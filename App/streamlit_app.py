@@ -47,7 +47,7 @@ def render_3d_view(complex_obj: Complex, width: int = 500, height: int = 400):
 # ---------------------------------------------------------------------------
 
 st.set_page_config(page_title="CoordAnalyst", page_icon="⚛️", layout="wide")
-st.title("CoordAnalyst : Coordination Complex Spectra Predictor")
+st.title("⚛️ CoordAnalyst : Coordination Complex Spectra Predictor")
 st.caption("Educational tool · ±20–50 cm⁻¹ accuracy · data from Nakamoto 6th ed.")
 
 with st.sidebar:
@@ -60,10 +60,18 @@ with st.sidebar:
     else:
         user_input = st.text_input("Enter a complex name", value="hexacyanoferrate(II)")
 
+    analyze = st.button("Analyze", type="primary", use_container_width=True)
+
+    st.divider()
+
     spectrum_type = st.radio("Spectrum type", ["IR", "Raman", "Both"], horizontal=True)
     sigma         = st.slider("Peak width σ (cm⁻¹)", min_value=5, max_value=60, value=20, step=5)
 
-    analyze = st.button("Analyze", type="primary", use_container_width=True)
+    st.divider()
+    st.caption(
+        "**Supported ligands:** CN CO NH₃ H₂O Cl Br I OH NO₂ ONO SCN NCS "
+        "NO N₃ en ox acac py dmso PPh₃"
+    )
 
 # Parse formula
 from coordchem.name import parse_name   
