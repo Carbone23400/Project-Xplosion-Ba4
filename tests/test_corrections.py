@@ -12,8 +12,8 @@ Tests cover:
     - geometry integration
 """
 import pytest 
-from src.coordchem.parser import parse_formula
-from src.coordchem.spectra.predictor import (
+from coordchem.parser import parse_formula
+from coordchem.spectra.predictor import (
     predict_spectrum,
     apply_backbonding_correction,
     apply_coordination_shift,

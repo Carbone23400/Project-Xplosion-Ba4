@@ -7,9 +7,9 @@ Run with:  python -m pytest tests/test_predictor.py -v
 """
 
 import pytest
-from src.coordchem.parser import parse_formula
-from src.coordchem.spectra.predictor import predict_spectrum, PredictionResult, INTENSITY_SCALE
-from data.database.ir_ra_bands import IRBandDB
+from coordchem.parser import parse_formula
+from coordchem.spectra.predictor import predict_spectrum, PredictionResult, INTENSITY_SCALE
+from data.ir_ra_bands import IRBandDB
 
 
 # ---------------------------------------------------------------------------

@@ -8,7 +8,7 @@ Run with:  python -m pytest tests/test_ir_ra_bands.py -v
 
 import pytest
 
-from data.database.ir_ra_bands import IRBandDB, BandRecord
+from data.ir_ra_bands import IRBandDB, BandRecord
 
 
 @pytest.fixture
