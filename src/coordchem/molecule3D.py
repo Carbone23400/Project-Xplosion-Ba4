@@ -4,7 +4,7 @@ Backward-compatible 3D helpers.
 The maintained implementation lives in ``coordchem.viz.structure_3d``.  This
 module keeps older imports such as ``coordchem.molecule3D.ligand_3D`` working.
 """
-
+#je sais pas trop ce que c'est je crois ce que j'avais fait au debut 
 from __future__ import annotations
 from rdkit import Chem
 from coordchem.viz.diagram_2d import parse_complex_input
@@ -41,6 +41,9 @@ __all__ = [
     "tetrahedral_positions",
     "view_complex_3d",
 ]
+
+
+#debut de mon code
 from typing import Iterable, Optional, Sequence, Tuple
 import math
 from rdkit import Chem
