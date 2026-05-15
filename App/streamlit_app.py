@@ -81,8 +81,9 @@ with st.sidebar:
 
     st.divider()
     st.caption(
-        "**Supported ligands:** CN CO NH₃ H₂O Cl Br I OH NO₂ ONO SCN NCS "
-        "NO N₃ en ox acac py dmso PPh₃"
+        "**Supported ligands:** CN CO NH₃ H₂O Cl Br I OH NO₂ ONO SCN NCS"
+        "NO N₃ en ox acac py dmso PPh₃ PMe3 PEt3 phen bipy EDTA Cp tpy"
+
     )
 
 if not user_input.strip():
