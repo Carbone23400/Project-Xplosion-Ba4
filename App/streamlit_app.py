@@ -17,76 +17,6 @@ from coordchem.spectra.renderer import plot_spectrum
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-def get_iupac_name(parsed) -> str:
-    """
-    Build a basic IUPAC name from a ParsedComplex object.
-    e.g. [Fe(CN)6]4- → hexacyanidoferrate(II)
-    """
-    # Number prefixes
-    PREFIXES = {
-        1: "mono", 2: "di",    3: "tri",   4: "tetra",
-        5: "penta", 6: "hexa", 7: "hepta", 8: "octa",
-        9: "nona",  10: "deca"
-    }
-
-    # Build ligand part — alphabetical order by ligand name (IUPAC rule)
-    ligand_parts = []
-    for lig, count in sorted(
-        parsed.ligands.items(),
-        key=lambda x: parsed.ligand_names.get(x[0], x[0])
-    ):
-        name   = parsed.ligand_names.get(lig, lig)
-        prefix = PREFIXES.get(count, str(count))
-        # Use bis/tris/tetrakis for complex ligand names containing a number
-        if any(p in name for p in ("di", "tri", "tetra", "bis", "tris")):
-            complex_prefixes = {2: "bis", 3: "tris", 4: "tetrakis",
-                                5: "pentakis", 6: "hexakis"}
-            prefix = complex_prefixes.get(count, str(count))
-            ligand_parts.append(f"{prefix}({name})")
-        else:
-            ligand_parts.append(f"{prefix}{name}")
-
-    ligand_str = "".join(ligand_parts)
-
-    # Metal name — lowercase
-    METAL_NAMES = {
-        "Fe": "ferrate", "Cu": "cuprate", "Co": "cobaltate",
-        "Ni": "nickelate", "Cr": "chromate", "Mn": "manganate",
-        "Pt": "platinate", "Pd": "palladate", "Au": "aurate",
-        "Ag": "argentate", "Zn": "zincate",  "Mo": "molybdate",
-        "W":  "tungstate",  "Ru": "ruthenate","Os": "osmate",
-        "Rh": "rhodate",    "Ir": "iridate",  "V":  "vanadate",
-        "Ti": "titanate",   "Cd": "cadmate",
-    }
-
-    ox = parsed.oxidation_state
-    ox_str     = f"({_roman(ox)})" if ox is not None else ""
-    metal_name = METAL_NAMES.get(parsed.metal, parsed.metal.lower() + "ate")
-
-    # If complex charge is positive or zero, use metal name directly (cation)
-    if parsed.complex_charge >= 0:
-        metal_name = parsed.metal.lower()
-
-    return f"{ligand_str}{metal_name}{ox_str}"
-
-
-def _roman(n: int) -> str:
-    """Convert an integer to a Roman numeral string."""
-    if n is None:
-        return ""
-    if n == 0:
-        return "0"
-    vals  = [10,"X", 9,"IX", 5,"V", 4,"IV", 1,"I"]
-    vals  = [(10,"X"),(9,"IX"),(5,"V"),(4,"IV"),(1,"I")]
-    neg   = n < 0
-    n     = abs(n)
-    result = ""
-    for value, numeral in vals:
-        while n >= value:
-            result += numeral
-            n      -= value
-    return f"−{result}" if neg else result
-
 def bands_to_df(result):
     """Convert a PredictionResult to a display DataFrame."""
     rows = []
@@ -180,13 +110,7 @@ for w in parsed.warnings:
     st.warning(w)
 
 # Complex info
-if input_mode == "Formula":
-    st.subheader(f"Formula : {user_input}")
-    st.subheader(f"Name: {get_iupac_name(parsed)}")
-else:
-    st.subheader(f"Formula: {parsed.raw_formula}")
-    st.subheader(f"Name : {user_input}")
-
+st.subheader(f"Formula : {parsed.raw_formula} , name: {parsed.iupac_name}")
 st.subheader("Complex Information")
 c1, c2, c3, c4, c5 = st.columns(5)
 ox = parsed.oxidation_state

@@ -140,13 +140,48 @@ def metal_data(name: str) -> str:
         raise ValueError(f"Could not identify a metal name in '{name}'.")
 #le but est de transformer notre nom en formule car le programme sait faire avec la formule
 
-def parse_name(name: str) -> ParsedComplex:
-     raw_name= name
-     metal= metal_data(name)
-     oxidation_state= extract_complex_charge_from_name(name)
-     ligands= ligand_data(name)
+def build_formula(metal: str, ligands: dict, oxidation_state: int, 
+                  total_ligand_charge: int) -> str:
+    """
+    Build a coordination complex formula string from parsed components.
+    e.g. metal=Fe, ligands={CN:6}, oxidation_state=2 → [Fe(CN)6]4-
+    """
+    # Build the inner part
+    ligand_str = "".join(
+        f"({lig}){count}" if len(lig) > 1 else f"{lig}{count}"
+        for lig, count in ligands.items()
+    )
+    inner = f"{metal}{ligand_str}"
 
-     result= ParsedComplex(metal=metal, ligands=ligands, complex_charge=0, counter_ions={},raw_formula=raw_name)
+    # Calculate complex charge
+    complex_charge = oxidation_state + total_ligand_charge
+
+    # Format charge suffix
+    if complex_charge == 0:
+        charge_str = ""
+    elif complex_charge == 1:
+        charge_str = "+"
+    elif complex_charge == -1:
+        charge_str = "-"
+    elif complex_charge > 1:
+        charge_str = f"{complex_charge}+"
+    else:
+        charge_str = f"{abs(complex_charge)}-"
+
+    return f"[{inner}]{charge_str}"
+
+def parse_name(name: str) -> ParsedComplex:
+    metal= metal_data(name)
+    oxidation_state= extract_complex_charge_from_name(name)
+    ligands= ligand_data(name)
+
+    formula = build_formula(metal, ligands, oxidation_state or 0,
+                        sum(KNOWN_LIGANDS.get(l, ("", 0))[1] * c 
+                            for l, c in ligands.items()))
+
+    result = ParsedComplex(metal=metal, ligands=ligands, complex_charge=0,counter_ions={}, raw_formula=formula)
+    result.iupac_name = name
+
      _enrich(result)
 
      if oxidation_state is not None:
