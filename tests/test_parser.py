@@ -249,12 +249,14 @@ class TestCounterIons:
         assert r.counter_ions.get("K") == 4
         assert r.complex_charge == -4
         assert r.oxidation_state == 2
+        assert r.iupac_name == "potassium hexacyanoferrate(II)"
 
     def test_sodium_counter_ion(self):
         r = parse("Na2[PtCl4]")
         assert r.counter_ions.get("Na") == 2
         assert r.complex_charge == -2
         assert r.oxidation_state == 2
+        assert r.iupac_name == "sodium tetrachloroplatinate(II)"
 
     def test_trailing_chloride_counter_ions(self):
         r = parse("[Fe(en)3]Cl3")
@@ -262,6 +264,7 @@ class TestCounterIons:
         assert r.complex_charge == 3
         assert r.oxidation_state == 3
         assert r.ligands == {"en": 3}
+        assert r.iupac_name == "tris(ethylenediamine)iron(III) chloride"
 
     def test_explicit_charge_with_trailing_counter_ions(self):
         r = parse("[Co(NH3)6]3+Cl3")

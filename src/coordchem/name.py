@@ -4,10 +4,13 @@
 
 import re
 
+from .parser import COUNTER_IONS
+from .parser import COUNTER_ION_NAMES
 from .parser import KNOWN_LIGANDS
 from .parser import ParsedComplex
 from .parser import _apply_ambidentate_donor_assignments
 from .parser import _enrich
+from .parser import get_iupac_name
 
 
 def ligand_data(name: str) -> dict[str, int]:
@@ -141,59 +144,144 @@ def metal_data(name: str) -> str:
         raise ValueError(f"Could not identify a metal name in '{name}'.")
 #le but est de transformer notre nom en formule car le programme sait faire avec la formule
 
-def build_formula(metal: str, ligands: dict, oxidation_state: int, 
-                  total_ligand_charge: int) -> str:
-    """
-    Build a coordination complex formula string from parsed components.
-    e.g. metal=Fe, ligands={CN:6}, oxidation_state=2 → [Fe(CN)6]4-
-    """
-    # Build the inner part
-    ligand_str = "".join(
-        f"({lig}){count}" if len(lig) > 1 else f"{lig}{count}"
-        for lig, count in ligands.items()
-    )
-    inner = f"{metal}{ligand_str}"
+def build_formula(
+     metal: str,
+     ligands: dict[str, int],
+     oxidation_state: int,
+     total_ligand_charge: int,
+     counter_ions: dict[str, int] | None = None,
+) -> str:
+     """Build a coordination complex formula from parsed name components."""
+     ligand_parts = []
+     for ligand, count in ligands.items():
+          count_text = "" if count == 1 else str(count)
+          if re.fullmatch(r"[A-Z][a-z]?", ligand):
+               ligand_parts.append(f"{ligand}{count_text}")
+          else:
+               ligand_parts.append(f"({ligand}){count_text}")
 
-    # Calculate complex charge
-    complex_charge = oxidation_state + total_ligand_charge
+     complex_charge = oxidation_state + total_ligand_charge
+     if complex_charge == 0:
+          charge_text = ""
+     elif complex_charge == 1:
+          charge_text = "+"
+     elif complex_charge == -1:
+          charge_text = "-"
+     elif complex_charge > 1:
+          charge_text = f"{complex_charge}+"
+     else:
+          charge_text = f"{abs(complex_charge)}-"
 
-    # Format charge suffix
-    if complex_charge == 0:
-        charge_str = ""
-    elif complex_charge == 1:
-        charge_str = "+"
-    elif complex_charge == -1:
-        charge_str = "-"
-    elif complex_charge > 1:
-        charge_str = f"{complex_charge}+"
-    else:
-        charge_str = f"{abs(complex_charge)}-"
+     inner = f"[{metal}{''.join(ligand_parts)}]"
+     if counter_ions:
+          leading = []
+          trailing = []
+          for ion, count in counter_ions.items():
+               ion_text = _format_counter_ion_formula(ion, count)
+               if COUNTER_IONS.get(ion, 0) > 0:
+                    leading.append(ion_text)
+               else:
+                    trailing.append(ion_text)
+          return f"{''.join(leading)}{inner}{''.join(trailing)}"
 
-    return f"[{inner}]{charge_str}"
+     return f"{inner}{charge_text}"
+
+
+def _format_counter_ion_formula(ion: str, count: int) -> str:
+     count_text = "" if count == 1 else str(count)
+     if count == 1:
+          return ion
+     if re.fullmatch(r"[A-Z][a-z]?", ion):
+          return f"{ion}{count_text}"
+     return f"({ion}){count_text}"
+
+
+def _extract_counter_ions_from_name(name: str) -> tuple[str, dict[str, int | None]]:
+     """Remove known counter-ion names and return possible explicit counts."""
+     normalized_name = _normalize_name(name)
+     counter_ions: dict[str, int | None] = {}
+     counter_names = sorted(
+          COUNTER_ION_NAMES.items(),
+          key=lambda item: len(_normalize_name(item[1])),
+          reverse=True,
+     )
+     prefixes = sorted(PREFIXE.items(), key=lambda item: len(item[0]), reverse=True)
+
+     for ion, ion_name in counter_names:
+          normalized_ion_name = _normalize_name(ion_name)
+          found = False
+          for prefix, count in prefixes:
+               pattern = prefix + normalized_ion_name
+               if pattern in normalized_name:
+                    counter_ions[ion] = count
+                    normalized_name = normalized_name.replace(pattern, "", 1)
+                    found = True
+                    break
+          if found:
+               continue
+          if normalized_ion_name in normalized_name:
+               counter_ions[ion] = None
+               normalized_name = normalized_name.replace(normalized_ion_name, "", 1)
+
+     return normalized_name, counter_ions
+
+
+def _resolve_counter_ion_counts(
+     counter_ions: dict[str, int | None],
+     complex_charge: int,
+) -> dict[str, int]:
+     if not counter_ions:
+          return {}
+
+     if len(counter_ions) == 1:
+          ion, explicit_count = next(iter(counter_ions.items()))
+          if explicit_count is not None:
+               return {ion: explicit_count}
+          ion_charge = COUNTER_IONS.get(ion, 0)
+          if ion_charge and complex_charge and ion_charge * complex_charge < 0:
+               count = abs(complex_charge) // abs(ion_charge)
+               if count > 0 and count * abs(ion_charge) == abs(complex_charge):
+                    return {ion: count}
+          return {ion: 1}
+
+     return {ion: count if count is not None else 1 for ion, count in counter_ions.items()}
+
 
 def parse_name(name: str) -> ParsedComplex:
-    raw_name= name
-    metal= metal_data(name)
-    oxydation_state= extract_complex_charge_from_name(name)
-    ligands= ligand_data(name)
+     raw_name= name
+     name_without_counter_ions, counter_ion_names = _extract_counter_ions_from_name(name)
+     metal= metal_data(name_without_counter_ions)
+     oxydation_state= extract_complex_charge_from_name(name)
+     ligands= ligand_data(name_without_counter_ions)
 
-    _enrich(result)
+     result= ParsedComplex(metal=metal, ligands=ligands, complex_charge=0, counter_ions={},raw_formula=raw_name)
+     _enrich(result)
 
-    if oxydation_state is not None:
-        result.oxidation_state=oxydation_state
-        result.complex_charge=oxydation_state + result.total_ligand_charge
-        _apply_ambidentate_donor_assignments(result)
-    return result
+     if oxydation_state is not None:
+          result.oxidation_state=oxydation_state
+          result.complex_charge=oxydation_state + result.total_ligand_charge
+          result.counter_ions = _resolve_counter_ion_counts(
+               counter_ion_names,
+               result.complex_charge,
+          )
+          result.raw_formula = build_formula(
+               metal,
+               ligands,
+               oxydation_state,
+               result.total_ligand_charge,
+               result.counter_ions,
+          )
+          _apply_ambidentate_donor_assignments(result)
+          result.iupac_name = get_iupac_name(result)
+     return result
 
 
 def _normalize_name(name: str) -> str:
-    """Normalize a coordination compound name for simple substring matching."""
-    return re.sub(r"[\s_\-()]+", "", name).lower()
+     """Normalize a coordination compound name for simple substring matching."""
+     return re.sub(r"[\s_\-()]+", "", name).lower()
 
 #test
 if __name__=="__main__":
-    name = input ("complex name is:")
-    complex_info=parse_name(name)
-    print(complex_info)
-
-
+     name = input ("complex name is:")
+     complex_info=parse_name(name)
+     print(complex_info)

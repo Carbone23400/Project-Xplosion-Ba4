@@ -9,6 +9,7 @@ Run with: python -m pytest tests/test_name.py -v
 import pytest
 
 from coordchem.name import (
+    build_formula,
     extract_complex_charge_from_name,
     ligand_data,
     metal_data,
@@ -97,6 +98,7 @@ class TestParseName:
         assert result.oxidation_state == 2
         assert result.complex_charge == 0
         assert result.coordination_number == 4
+        assert result.raw_formula == "[PtCl2(NH3)2]"
 
     def test_parse_hexacyanoferrate_ii(self):
         result = parse_name("hexacyanoferrate(II)")
@@ -106,6 +108,23 @@ class TestParseName:
         assert result.complex_charge == -4
         assert result.coordination_number == 6
 
+    def test_parse_potassium_hexacyanoferrate_ii(self):
+        result = parse_name("potassium hexacyanoferrate(II)")
+        assert result.metal == "Fe"
+        assert result.ligands == {"CN": 6}
+        assert result.counter_ions == {"K": 4}
+        assert result.complex_charge == -4
+        assert result.raw_formula == "K4[Fe(CN)6]"
+        assert result.iupac_name == "potassium hexacyanoferrate(II)"
+
+    def test_parse_cationic_complex_with_chloride_counter_ions(self):
+        result = parse_name("trisethylenediamineiron(III) chloride")
+        assert result.metal == "Fe"
+        assert result.ligands == {"en": 3}
+        assert result.counter_ions == {"Cl": 3}
+        assert result.complex_charge == 3
+        assert result.raw_formula == "[Fe(en)3]Cl3"
+
     def test_parse_dmso_name_applies_hsab_after_oxidation_state(self):
         result = parse_name("hexakisdimethylsulfoxideiron(III)")
 
@@ -114,3 +133,18 @@ class TestParseName:
         assert result.donor_atoms["dmso"] == "O"
         assert result.complex_charge == 3
         assert result.coordination_number == 6
+
+
+class TestBuildFormula:
+
+    def test_build_anionic_complex_formula(self):
+        assert build_formula("Fe", {"CN": 6}, 2, -6) == "[Fe(CN)6]4-"
+
+    def test_build_neutral_mixed_formula(self):
+        assert build_formula("Pt", {"Cl": 2, "NH3": 2}, 2, -2) == "[PtCl2(NH3)2]"
+
+    def test_build_formula_with_leading_counter_ion(self):
+        assert build_formula("Fe", {"CN": 6}, 2, -6, {"K": 4}) == "K4[Fe(CN)6]"
+
+    def test_build_formula_with_trailing_counter_ion(self):
+        assert build_formula("Fe", {"en": 3}, 3, 0, {"Cl": 3}) == "[Fe(en)3]Cl3"
