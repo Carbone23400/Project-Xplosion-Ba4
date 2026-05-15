@@ -182,16 +182,16 @@ def parse_name(name: str) -> ParsedComplex:
     result = ParsedComplex(metal=metal, ligands=ligands, complex_charge=0,counter_ions={}, raw_formula=formula)
     result.iupac_name = name
 
-     _enrich(result)
+    _enrich(result)
 
-     if oxidation_state is not None:
+    if oxidation_state is not None:
           result.oxidation_state=oxidation_state
           result.complex_charge=oxidation_state + result.total_ligand_charge
           _apply_ambidentate_donor_assignments(result)
-     return result
+    return result
 
 
 def _normalize_name(name: str) -> str:
      """Normalize a coordination compound name for simple substring matching."""
-     return re.sub(r"[\s_\-()]+", "", name).lower()
+    return re.sub(r"[\s_\-()]+", "", name).lower()
 
