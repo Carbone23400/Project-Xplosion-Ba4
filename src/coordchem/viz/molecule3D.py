@@ -4,8 +4,11 @@ import math
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from coordchem.parser import ParsedComplex, parse_formula, KNOWN_LIGANDS
-from coordchem.viz.ligand_data import LIGAND_DONOR_INDEX_OVERRIDES, LIGAND_SMILES
+from coordchem.parser import ParsedComplex, parse_formula
+from coordchem.viz.ligand_data import (
+    LIGAND_SMILES,
+    donor_index_overrides_for_ligand,
+)
 from coordchem.name import parse_name
 
 Position = Tuple[float, float, float]
@@ -195,7 +198,27 @@ def find_donor_atom2(
 
     raise ValueError(f"No donor atom matching {donor_symbol!r} found in ligand")
 
-def find_donor_atom(mol, donor_symbol):
+def find_donor_atom(mol, donor_symbol, override: Optional[int] = None):
+    if override is not None:
+        if 0 <= override < mol.GetNumAtoms():
+            return override
+
+    if donor_symbol == "?" or not donor_symbol:
+        for atom in mol.GetAtoms():
+            if atom.GetSymbol() != "H":
+                return atom.GetIdx()
+        raise ValueError("Ligand has no non-H atoms")
+
+    candidates = [s.strip() for s in donor_symbol.split("/") if s.strip()]
+    for symbol in candidates:
+        for atom in mol.GetAtoms():
+            if atom.GetSymbol() == symbol:
+                return atom.GetIdx()
+
+    raise ValueError(f"No donor atom matching {donor_symbol!r} found in ligand")
+
+
+def find_donor_atom_old(mol, donor_symbol):
     for atom in mol.GetAtoms():
         if atom.GetSymbol() == donor_symbol:
             return atom.GetIdx()
@@ -497,10 +520,6 @@ def ammonia_ligand_positions(ligand_mol, donor_idx, target, nh_distance=1.0, spr
 
     return coords
 
-<<<<<<< HEAD:src/coordchem/molecule3D.py
-
-=======
->>>>>>> 15e14d1 (report):src/coordchem/viz/molecule3D.py
 
 def pyridine_ligand_positions(ligand_mol, donor_idx_local,target,ligand_number=0):
     direction = unit(target)
@@ -847,7 +866,7 @@ def build_complex_3d(
             continue
 
         donor_symbol = parsed.donor_atoms.get(ligand_symbol, "?")
-        donor_overrides = LIGAND_DONOR_INDEX_OVERRIDES.get(ligand_symbol, ())
+        donor_overrides = donor_index_overrides_for_ligand(ligand_symbol, donor_symbol)
         denticity = parsed.ligand_denticity.get(ligand_symbol, 1)
 
         for _ in range(count):
@@ -1047,38 +1066,20 @@ def _to_parsed(complex_or_formula) -> ParsedComplex:
     if isinstance(complex_or_formula, ParsedComplex):
         return complex_or_formula
     if isinstance(complex_or_formula, str):
-        return parse_complex_input(complex_or_formula)
+        try:
+            return parse_formula(complex_or_formula)
+        except Exception:
+            return parse_name(complex_or_formula)
     parsed = getattr(complex_or_formula, "parsed", None)
     if isinstance(parsed, ParsedComplex):
         return parsed
     raise TypeError(
         "Expected a ParsedComplex, Complex, or formula string"
     )
-<<<<<<< HEAD:src/coordchem/molecule3D.py
-=======
-#test
-parsed = parse_complex_input("trisacetylacetonatocobalt(III)")
-mol = build_complex_3d(parsed)
-
-print(parsed.ligands)
-print(parsed.coordination_number)
-print(mol.GetNumAtoms())
-
-
-#test 
-
-from coordchem.geometry import predict_geometry
-geometry = predict_geometry(parsed)
-print(geometry)
-
-sites = geometry_positions(geometry, parsed.coordination_number)
-print(len(sites))
-print(sites)
 
 
 #function to display the molecule on a notebook
 
->>>>>>> 15e14d1 (report):src/coordchem/viz/molecule3D.py
 def view_complex_3d(
     complex_or_formula,
     width: int = 400,
@@ -1114,9 +1115,4 @@ def complex_3d_html(
         height=height,
         distance=distance,
     )
-<<<<<<< HEAD:src/coordchem/molecule3D.py
     return view._make_html()
-
-=======
-    return view._make_html()
->>>>>>> 15e14d1 (report):src/coordchem/viz/molecule3D.py

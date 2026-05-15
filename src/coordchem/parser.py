@@ -168,8 +168,11 @@ def parse_formula(formula: str) -> ParsedComplex:
     # 1. Split counter ions from the complex bracket
     counter_ions, inner = _extract_counter_ions(formula)
 
-    # 2. Extract complex charge from superscript notation
-    inner, complex_charge = _extract_complex_charge(inner)
+    # 2. Extract complex charge from suffix notation, or infer it from
+    # counter-ions when the charge is omitted.
+    inner, complex_charge, has_explicit_charge = _extract_complex_charge(inner)
+    if not has_explicit_charge and counter_ions:
+        complex_charge = _infer_complex_charge_from_counter_ions(counter_ions)
 
     # 3. Strip outer brackets  [ ... ]
     inner = _strip_outer_brackets(inner)
@@ -234,25 +237,78 @@ def _extract_counter_ions(formula: str) -> tuple[dict[str, int], str]:
     # Trailing counter ions would be something like ]Cl2 (rare) — try to detect
     # For now we leave 'after_bracket' untouched; charge parser handles it.
 
-    inner = formula[bracket_start: bracket_end + 1] + after_bracket
+    charge_suffix, trailing_ion_text = _split_charge_suffix_and_trailing_ions(
+        after_bracket
+    )
+    if trailing_ion_text:
+        ions, _ = _parse_ion_string(trailing_ion_text)
+        for ion, count in ions.items():
+            counter_ions[ion] = counter_ions.get(ion, 0) + count
+
+    inner = formula[bracket_start: bracket_end + 1] + charge_suffix
     return counter_ions, inner
 
 
 def _parse_ion_string(s: str) -> tuple[dict[str, int], str]:
-    """Parse a string of ion symbols with optional counts, e.g. 'K4' or 'Na2'."""
+    """Parse ion symbols with optional counts, e.g. 'K4', 'Cl3', '(NH4)2'."""
     ions: dict[str, int] = {}
-    # Match known counter ion symbols followed by optional digit
-    pattern = re.compile(
-        r'(' + '|'.join(sorted(COUNTER_IONS.keys(), key=len, reverse=True)) + r')(\d*)'
-    )
-    for match in pattern.finditer(s):
-        symbol = match.group(1)
-        count  = int(match.group(2)) if match.group(2) else 1
+    pos = 0
+    s = s.strip()
+    symbols = sorted(COUNTER_IONS.keys(), key=len, reverse=True)
+
+    while pos < len(s):
+        if s[pos].isspace():
+            pos += 1
+            continue
+
+        symbol = None
+        if s[pos] == "(":
+            close = s.find(")", pos + 1)
+            if close != -1:
+                bracketed = s[pos + 1:close]
+                if bracketed in COUNTER_IONS:
+                    symbol = bracketed
+                    pos = close + 1
+
+        if symbol is None:
+            for candidate in symbols:
+                if s.startswith(candidate, pos):
+                    symbol = candidate
+                    pos += len(candidate)
+                    break
+
+        if symbol is None:
+            return ions, s[pos:]
+
+        count_m = re.match(r"\d+", s[pos:])
+        count = int(count_m.group(0)) if count_m else 1
+        if count_m:
+            pos += len(count_m.group(0))
         ions[symbol] = ions.get(symbol, 0) + count
-    return ions, s
+
+    return ions, ""
 
 
-def _extract_complex_charge(formula: str) -> tuple[str, int]:
+def _split_charge_suffix_and_trailing_ions(after_bracket: str) -> tuple[str, str]:
+    """
+    Split text after ']' into an optional charge suffix and trailing ions.
+
+    Examples:
+        "4-"    -> ("4-", "")
+        "Cl3"   -> ("", "Cl3")
+        "3+Cl3" -> ("3+", "Cl3")
+    """
+    if not after_bracket:
+        return "", ""
+
+    match = re.match(r"^(\d*[+-])(.*)$", after_bracket)
+    if match:
+        return match.group(1), match.group(2)
+
+    return "", after_bracket
+
+
+def _extract_complex_charge(formula: str) -> tuple[str, int, bool]:
     """
     Extract the charge suffix from a bracketed formula.
 
@@ -265,7 +321,7 @@ def _extract_complex_charge(formula: str) -> tuple[str, int]:
     match   = pattern.search(formula)
 
     if not match:
-        return formula, 0
+        return formula, 0, False
 
     bracket_close = match.group(1)   # ]
     magnitude     = match.group(2)   # e.g. "4" or ""
@@ -279,7 +335,16 @@ def _extract_complex_charge(formula: str) -> tuple[str, int]:
 
     # Remove the charge suffix from the formula string
     clean = formula[:match.start()] + bracket_close
-    return clean, charge
+    return clean, charge, bool(sign)
+
+
+def _infer_complex_charge_from_counter_ions(counter_ions: dict[str, int]) -> int:
+    """Infer the complex charge needed to neutralize the parsed counter-ions."""
+    counter_charge = sum(
+        COUNTER_IONS.get(ion, 0) * count
+        for ion, count in counter_ions.items()
+    )
+    return -counter_charge
 
 
 def _strip_outer_brackets(formula: str) -> str:

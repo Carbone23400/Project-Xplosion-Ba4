@@ -127,10 +127,17 @@ class Complex:
         return geometry_report(self.parsed)
 
     def draw_2d_svg(self, size: int = 700, title: str | None = None) -> str:
-        """Return an SVG depiction of the complex."""
+        """
+        Return an SVG depiction of the complex.
+
+        The 2D SVG is intentionally kept as a clean structure-only drawing:
+        complex names and geometry labels are not printed into the SVG. The
+        ``title`` parameter is accepted for backward compatibility with older
+        callers, but is no longer rendered.
+        """
         from .viz.diagram_2d import diagram_2d_svg
 
-        return diagram_2d_svg(self.parsed, size=size, title=title)
+        return diagram_2d_svg(self.parsed, size=size)
 
     def save_2d(
         self,
@@ -138,20 +145,26 @@ class Complex:
         size: int = 700,
         title: str | None = None,
     ):
-        """Save a 2D SVG depiction to disk."""
+        """
+        Save a clean 2D SVG depiction to disk.
+
+        Names and geometry labels are not written into the SVG. The ``title``
+        parameter is accepted for backward compatibility, but is no longer
+        rendered.
+        """
         from .viz.diagram_2d import save_diagram_2d
 
-        return save_diagram_2d(self.parsed, output_path=output_path, size=size, title=title)
+        return save_diagram_2d(self.parsed, output_path=output_path, size=size)
 
     def build_3d(self, distance: float = 2.0):
         """Return an RDKit ``Mol`` with a 3D conformer for this complex."""
-        from .molecule3D import build_complex_3d
+        from .viz.molecule3D import build_complex_3d
 
         return build_complex_3d(self.parsed, distance=distance)
 
     def draw_3d(self, width: int = 400, height: int = 400, distance: float = 2.0):
         """Return a ``py3Dmol.view`` displaying the 3D structure of the complex."""
-        from .molecule3D import view_complex_3d
+        from .viz.molecule3D import view_complex_3d
 
         return view_complex_3d(
             self.parsed, width=width, height=height, distance=distance,
@@ -161,7 +174,7 @@ class Complex:
         self, width: int = 400, height: int = 400, distance: float = 2.0,
     ) -> str:
         """Return self-contained HTML for embedding the 3D view (e.g. in Streamlit)."""
-        from .molecule3D import complex_3d_html
+        from .viz.molecule3D import complex_3d_html
 
         return complex_3d_html(
             self.parsed, width=width, height=height, distance=distance,

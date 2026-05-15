@@ -7,7 +7,7 @@ from .diagram_2d import (
     save_diagram_2d,
     save_rdkit_2d,
 )
-from .structure_3d import (
+from .molecule3D import (
     build_complex_3d,
     build_ligand_3d,
     complex_3d_html,

@@ -697,7 +697,7 @@ def _cp_sandwich_svg(
     parsed: ParsedComplex,
     size: int,
     title: str | None,
-    geometry: str = "sandwich",
+    geometry: str = "linear",
 ) -> str:
     """Draw a metallocene-style Cp2M sandwich with centroid bonds."""
     center_x = size / 2
@@ -712,8 +712,6 @@ def _cp_sandwich_svg(
     top_points = _cp_ring_points(center_x, top_y, ring_rx, ring_ry)
     bottom_points = _cp_ring_points(center_x, bottom_y, ring_rx, ring_ry, rotation_degrees=90)
     metal_label = escape(parsed.metal)
-    display_title = escape(title) if title else ""
-    display_geometry = escape(geometry)
 
     return f"""<?xml version='1.0' encoding='iso-8859-1'?>
 <svg version='1.1' baseProfile='full'
@@ -728,8 +726,6 @@ width='{size}px' height='{size}px' viewBox='0 0 {size} {size}'>
   .cp-ring {{ stroke:#000000; stroke-width:2.4px; stroke-linejoin:round; fill:none; }}
   .cp-delocalized-ring {{ stroke:#000000; stroke-width:2.0px; fill:none; }}
   .cp-metal {{ font-family:Arial, Helvetica, sans-serif; font-size:{size * 0.040:.1f}px; font-weight:400; fill:#000000; text-anchor:middle; dominant-baseline:central; }}
-  .cp-title {{ font-family:Arial, Helvetica, sans-serif; font-size:18px; font-weight:700; fill:#111111; text-anchor:middle; }}
-  .cp-legend {{ font-family:Arial, Helvetica, sans-serif; font-size:18px; fill:#000000; text-anchor:middle; }}
 </style>
 <path class='bond-0 atom-0 atom-1 cp-bond' d='M {center_x:.1f},{metal_y - size * 0.035:.1f} L {center_x:.1f},{top_y:.1f}'/>
 <path class='bond-1 atom-0 atom-2 cp-bond' d='M {center_x:.1f},{metal_y + size * 0.035:.1f} L {center_x:.1f},{bottom_y:.1f}'/>
@@ -740,8 +736,6 @@ width='{size}px' height='{size}px' viewBox='0 0 {size} {size}'>
 <text class='atom-0 cp-metal' x='{center_x:.1f}' y='{metal_y:.1f}'>{metal_label}</text>
 <circle class='atom-1' cx='{center_x:.1f}' cy='{top_y:.1f}' r='0.1' fill='none'/>
 <circle class='atom-2' cx='{center_x:.1f}' cy='{bottom_y:.1f}' r='0.1' fill='none'/>
-{f"<text class='cp-title' x='{center_x:.1f}' y='28'>{display_title}</text>" if display_title else ""}
-<text class='cp-legend' x='{center_x:.1f}' y='{size - 18:.1f}'>{display_geometry}</text>
 </svg>"""
 
 
@@ -867,7 +861,6 @@ def diagram_2d_svg(
 
     parsed = parse_complex_input(complex_input)
     geometry = geometry_override or get_geometry(parsed)
-    display_title = title if title is not None else _coordination_compound_name(parsed)
     ligand_items = _expand_ligands(parsed)
     geometry_options = _geometry_options(geometry)
     drawing_variants = _drawing_variants(parsed, geometry_options)
@@ -876,8 +869,8 @@ def diagram_2d_svg(
         return _cp_sandwich_svg(
             parsed,
             size=size,
-            title=display_title,
-            geometry="sandwich",
+            title=None,
+            geometry="linear",
         )
 
     is_edta_drawing = should_use_edta_layout(parsed, ligand_items, geometry)
@@ -891,7 +884,8 @@ def diagram_2d_svg(
     for mol in mols:
         mol.UpdatePropertyCache(strict=False)
         Chem.GetSymmSSSR(mol)
-    legends = [legend for _, _, legend in drawing_variants]
+    variant_geometries = [variant_geometry for _, variant_geometry, _ in drawing_variants]
+    legends = [""] * len(mols)
 
     if len(mols) == 1:
         drawer = rdMolDraw2D.MolDraw2DSVG(size, size)
@@ -919,14 +913,14 @@ def diagram_2d_svg(
     square_antiprismatic_frame = _square_antiprismatic_frame_svg(
         drawer,
         mols,
-        legends,
+        variant_geometries,
     )
     _draw_h2_annotations(drawer, h2_annotations)
     drawer.FinishDrawing()
     svg = drawer.GetDrawingText()
     svg = _add_square_antiprismatic_frame(svg, square_antiprismatic_frame)
     svg = _add_interrupted_bond_styles(svg, mols)
-    return _add_svg_labels(svg, size=size, title=display_title)
+    return _add_svg_labels(svg, size=size, title=None)
 
 
 def save_diagram_2d(
