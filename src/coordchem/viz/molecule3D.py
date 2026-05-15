@@ -1,6 +1,5 @@
-"""
-Backward-compatible 3D helpers.
 
+<<<<<<< HEAD:src/coordchem/molecule3D.py
 The maintained implementation lives in ``coordchem.viz.structure_3d``.  This
 module keeps older imports such as ``coordchem.molecule3D.ligand_3D`` working.
 """
@@ -44,6 +43,8 @@ __all__ = [
 
 
 #debut de mon code
+=======
+>>>>>>> 15e14d1 (report):src/coordchem/viz/molecule3D.py
 from typing import Iterable, Optional, Sequence, Tuple
 import math
 from rdkit import Chem
@@ -160,12 +161,13 @@ def geometry_positions(
                 extra = octahedral_positions(distance)[: n - len(positions)]
                 return positions + extra
 
-    # Default: octahedral, padded if needed
+    # if the geometry is unknown the octahedral one is adopted by default. 
+    # For n ligands, if n is < to the number of ligand in the octahedral complex only the n first positions are attributed. 
     base = octahedral_positions(distance)
     if n <= len(base):
         return base[:n]
-    # TODO: implement explicit positions for CN > 6
     return base + [(0.0, 0.0, 0.0)] * (n - len(base))
+    #if n > o the number of ligand in the octahedral complex the 2 extra ligands fall in the center (0.0, 0.0, 0.0)
 
 
 # ---------------------------------------------------------------------------
@@ -219,29 +221,13 @@ def find_donor_atom2(
     donor_symbol: str,
     override: Optional[int] = None,
 ) -> int:
-    """
-    Return the atom index of the donor inside a ligand ``Mol``.
-
-    ``override`` is the explicit index from
-    :data:`coordchem.viz.ligand_data.LIGAND_DONOR_INDEX_OVERRIDES`
-    when available. Otherwise the first atom matching ``donor_symbol``
-    is returned.
-
-    Multi-donor symbols like ``"N/O"`` (used by EDTA) try each candidate
-    in order.
-
-    Raises
-    ------
-    ValueError
-        When no atom with the requested element symbol exists.
-    """
     if override is not None:
         if 0 <= override < mol.GetNumAtoms():
             return override
 
     candidates: Iterable[str]
     if donor_symbol == "?" or not donor_symbol:
-        # Unknown: take the first heavy atom
+        # if the ligand symbol is unknown the first heavy atom is taken
         for atom in mol.GetAtoms():
             if atom.GetSymbol() != "H":
                 return atom.GetIdx()
@@ -255,9 +241,6 @@ def find_donor_atom2(
 
     raise ValueError(f"No donor atom matching {donor_symbol!r} found in ligand")
 
-#on peut prendre directement les infos données dans KNOWNLIGANDS a partir de .donor_atoms
-
-
 def find_donor_atom(mol, donor_symbol):
     for atom in mol.GetAtoms():
         if atom.GetSymbol() == donor_symbol:
@@ -266,7 +249,7 @@ def find_donor_atom(mol, donor_symbol):
     raise ValueError(f"No donor atom {donor_symbol} found in ligand")
 
         
- #function for the disosition of bidentate ligands 
+ #function for the ligands disposition around the metal
 
 
 def vec_sub(a, b):
@@ -388,10 +371,7 @@ def translate_tridentate_ligand(ligand_mol, donor_indices, target_sites, reverse
 
     target_mid=(target_mid[0] + outward[0] * push,
         target_mid[1] + outward[1] * push,
-        target_mid[2] + outward[2] * push,)
-    #shift= (target_mid[0] - ligand_mid[0],
-     #   target_mid[1] - ligand_mid[1],
-      #  target_mid[2] - ligand_mid[2],)
+        target_mid[2] + outward[2] * push)
     coords={}
     for atom in ligand_mol.GetAtoms():
         idx=atom.GetIdx()
@@ -410,7 +390,7 @@ def translate_tridentate_ligand(ligand_mol, donor_indices, target_sites, reverse
 # ---------------------------------------------------------------------------
 # Complex-level builder
 # ---------------------------------------------------------------------------
-#à garder ou non car ne change pas grand chose
+
 def thiocyanato_ligand_positions(ligand_mol, donor_idx,target,ligand_symbol):
     direction = unit(target)
 
@@ -470,6 +450,7 @@ def thiocyanato_ligand_positions(ligand_mol, donor_idx,target,ligand_symbol):
         if idx not in coords:
             coords[idx]=target
     return coords
+    
 def nitrito_ligand_positions(ligand_mol, donor_idx, target, ligand_symbol):
     direction = unit(target)
 
@@ -562,7 +543,10 @@ def ammonia_ligand_positions(ligand_mol, donor_idx, target, nh_distance=1.0, spr
 
     return coords
 
+<<<<<<< HEAD:src/coordchem/molecule3D.py
 
+=======
+>>>>>>> 15e14d1 (report):src/coordchem/viz/molecule3D.py
 
 def pyridine_ligand_positions(ligand_mol, donor_idx_local,target,ligand_number=0):
     direction = unit(target)
@@ -609,12 +593,8 @@ def pyridine_ligand_positions(ligand_mol, donor_idx_local,target,ligand_number=0
                 heavy_idx = neighbors[0].GetIdx()
                 base = coords.get(heavy_idx, target)
                 outward=unit(vec_sub(base, ring_center))
-                #base = coords.get(heavy_idx, target)
-                #h_pos = vec_add(base, vec_scale(direction, 0.45))
-                #coords[idx] = h_pos
                 coords[idx]=vec_add(base, vec_scale(outward,0.45))
             else:
-                #coords[idx] = vec_add(target, vec_scale(direction, outward_distance + 0.5))
                 coords[idx]=target
     return coords
 
@@ -924,7 +904,7 @@ def build_complex_3d(
                 ligand_mol = build_ligand_3d(smiles)
             except ValueError:
                 continue
-
+            #bidentate case
             if denticity == 2 and len(donor_overrides) >= 2:
                 bidentate_index = site_index // 2
 
@@ -968,7 +948,7 @@ def build_complex_3d(
 
                 site_index += 2
                 continue
-
+            #tridentate case
             elif denticity==3 and len(donor_overrides)>=3:
                 tridentate_index=site_index//3
                 target_sites=octahedral_positions_tridentate(sites)[tridentate_index]
@@ -1013,7 +993,7 @@ def build_complex_3d(
                     donor_idx_local = find_donor_atom(ligand_mol, donor_symbol)
                 except ValueError:
                     continue
-#maintenant c'est le cas monodentate
+            #monodentate case
             target = sites[site_index]
 
             if ligand_symbol=="NH3":
@@ -1024,8 +1004,6 @@ def build_complex_3d(
                 local_coords=trimethyl_ligand_positions(ligand_mol, donor_idx_local,target)
             elif ligand_symbol=="PEt3":
                 local_coords=triethyl_ligand_positions(ligand_mol,donor_idx_local,target)
-            #elif ligand_symbol=="PPh3":
-                #local_coords=triphenylphosphine_ligand_position(ligand_mol, donor_idx_local,target, site_index)
             elif ligand_symbol in ("NO2","ONO"):
                 local_coords=nitrito_ligand_positions(ligand_mol, donor_idx_local,target,ligand_symbol)
             elif ligand_symbol in ("NCS","SCN"):
@@ -1082,7 +1060,7 @@ def build_complex_3d(
 
 
 
-#fonctions qui display les ligands diatiomiques pour que le deuxieme atome soit bien positionné
+#functions to display diatomic ligands correctly
 def normalize(v):
     length=(v[0]**2+v[1]**2+v[2]**2)**0.5
     if length==0:
@@ -1122,24 +1100,43 @@ def _to_parsed(complex_or_formula) -> ParsedComplex:
     raise TypeError(
         "Expected a ParsedComplex, Complex, or formula string"
     )
+<<<<<<< HEAD:src/coordchem/molecule3D.py
+=======
+#test
+parsed = parse_complex_input("trisacetylacetonatocobalt(III)")
+mol = build_complex_3d(parsed)
+
+print(parsed.ligands)
+print(parsed.coordination_number)
+print(mol.GetNumAtoms())
+
+
+#test 
+
+from coordchem.geometry import predict_geometry
+geometry = predict_geometry(parsed)
+print(geometry)
+
+sites = geometry_positions(geometry, parsed.coordination_number)
+print(len(sites))
+print(sites)
+
+
+#function to display the molecule on a notebook
+
+>>>>>>> 15e14d1 (report):src/coordchem/viz/molecule3D.py
 def view_complex_3d(
     complex_or_formula,
     width: int = 400,
     height: int = 400,
     distance: float = 2.0,
 ):
-    """
-    Return a ``py3Dmol.view`` for the complex.
-
-    The caller is responsible for displaying the view (``view.show()``
-    in a notebook or ``view._make_html()`` for embedding).
-    """
-    import py3Dmol  # local import: keep py3Dmol optional
+    import py3Dmol 
 
     parsed = _to_parsed(complex_or_formula)
     mol = build_complex_3d(parsed, distance=distance)
 
-    block = Chem.MolToMolBlock(mol, kekulize=False)#pour ne pas forcer la conversion des cycles aromatiques
+    block = Chem.MolToMolBlock(mol, kekulize=False) #pour ne pas forcer la conversion des cycles aromatiques
     view = py3Dmol.view(width=width, height=height)
     view.removeAllModels()
     view.addModel(block, "sdf")
@@ -1149,20 +1146,23 @@ def view_complex_3d(
     view.setBackgroundColor("white")
     view.zoomTo()
     return view
-#fonction utile pour display la molecule sur un notebook
 
+#useful function to display the complex on an app such as streamlit
 def complex_3d_html(
     complex_or_formula,
     width: int = 400,
     height: int = 400,
     distance: float = 2.0,
 ) -> str:
-    """Return self-contained HTML for embedding the 3D view."""
     view = view_complex_3d(
         complex_or_formula,
         width=width,
         height=height,
         distance=distance,
     )
+<<<<<<< HEAD:src/coordchem/molecule3D.py
     return view._make_html()
 
+=======
+    return view._make_html()
+>>>>>>> 15e14d1 (report):src/coordchem/viz/molecule3D.py
