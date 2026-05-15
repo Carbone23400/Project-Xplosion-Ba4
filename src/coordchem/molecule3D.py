@@ -6,20 +6,8 @@ module keeps older imports such as ``coordchem.molecule3D.ligand_3D`` working.
 """
 
 from __future__ import annotations
-
 from rdkit import Chem
-
-from .viz.structure_3d import (
-    build_complex_3d,
-    build_ligand_3d,
-    complex_3d_html,
-    find_donor_atom,
-    geometry_positions,
-    octahedral_positions,
-    tetrahedral_positions,
-    view_complex_3d,
-)
-
+from coordchem.viz.diagram_2d import parse_complex_input
 
 def ligand_3D(ligand_smile: str) -> Chem.Mol:
     """Compatibility alias for ``build_ligand_3d``."""
@@ -571,82 +559,7 @@ def ammonia_ligand_positions(ligand_mol, donor_idx, target, nh_distance=1.0, spr
 
     return coords
 
-#def triphenylphosphine_ligand_position(ligand_mol, donor_idx,target,ligand_number=0):
-    direction = unit(target)
 
-    center = target
-    coords = {}
-    coords[donor_idx] = center
-
-    if abs(direction[0]) < 0.9:
-        ref = (1.0, 0.0, 0.0)
-    else:
-        ref = (0.0, 1.0, 0.0)
-
-    u = unit(cross(direction, ref))
-    v = unit(cross(direction, u))
-
-    c_indices = [
-        atom.GetIdx()
-        for atom in ligand_mol.GetAtoms()
-        if atom.GetSymbol() == "C"
-    ]
-    h_indices=[
-        atom.GetIdx()
-        for atom in ligand_mol.GetAtoms()
-        if atom.GetSymbol() == "H"]
-    angle_offset = ligand_number * 0.4
-    phenyl_distance = 1.4
-    ring_radius = 0.75
-    p_atom = ligand_mol.GetAtomWithIdx(donor_idx)
-
-    ipso_carbons = [
-    nbr.GetIdx()
-    for nbr in p_atom.GetNeighbors()
-    if nbr.GetSymbol() == "C"
-]
-
-    for g, ipso_idx in enumerate(ipso_carbons):
-        base_angle = angle_offset + 2 * math.pi * g / 3
-
-        ipso_pos = vec_add(
-            target,
-            vec_add(
-                vec_scale(direction, 1.2),
-                vec_add(
-                    vec_scale(u, math.cos(base_angle) * 1.5),
-                    vec_scale(v, math.sin(base_angle) * 1.5),
-                ),
-            ),
-        )
-        coords[ipso_idx]=ipso_pos
-        for i, c_idx in enumerate(ipso_idx):
-            angle = base_angle + 2 * math.pi * i / max(len(ipso_idx),1)
-
-
-            ring_pos = vec_add(
-            vec_scale(u, math.cos(angle) * ring_radius),
-            vec_scale(v, math.sin(angle) * ring_radius),
-        )
-
-            coords[c_idx]=vec_add(ipso_pos, ring_pos)
-    for h_idx in h_indices:
-        atom = ligand_mol.GetAtomWithIdx(h_idx)
-        neighbors = atom.GetNeighbors()
-
-    if neighbors:
-        c_idx = neighbors[0].GetIdx()
-        base = coords.get(c_idx, target)
-        coords[h_idx] = vec_add(base, vec_scale(direction, 0.45))
-    else:
-        coords[h_idx] = vec_add(target, vec_scale(direction, phenyl_distance + 1.0))
-
-    for atom in ligand_mol.GetAtoms():
-        idx= atom.GetIdx()
-        if idx not in coords:
-            coords[idx] = target
-
-    return coords
 
 def pyridine_ligand_positions(ligand_mol, donor_idx_local,target,ligand_number=0):
     direction = unit(target)
@@ -1023,7 +936,7 @@ def build_complex_3d(
                 if bidentate_index >= len(site_pairs):
                     break
 
-                target_sites = (sites[site_index],sites[site_index+1])
+                target_sites = site_pairs[bidentate_index]
                 donor_indices = donor_overrides[:2]
 
                 local_coords = translate_bidentate_ligand(
@@ -1206,31 +1119,6 @@ def _to_parsed(complex_or_formula) -> ParsedComplex:
     raise TypeError(
         "Expected a ParsedComplex, Complex, or formula string"
     )
-#test
-parsed = parse_complex_input("trisacetylacetonatocobalt(III)")
-mol = build_complex_3d(parsed)
-
-print(parsed.ligands)
-print(parsed.coordination_number)
-print(mol.GetNumAtoms())
-
-
-
-#test 
-
-
-
-from coordchem.geometry import predict_geometry
-geometry = predict_geometry(parsed)
-print(geometry)
-
-sites = geometry_positions(geometry, parsed.coordination_number)
-print(len(sites))
-print(sites)
-
-
-
-
 def view_complex_3d(
     complex_or_formula,
     width: int = 400,
@@ -1274,13 +1162,4 @@ def complex_3d_html(
         distance=distance,
     )
     return view._make_html()
-#fonction utile pour voir sur une app comme ici streamlit
 
-#def parse_complex_input(complex_input):
- #   if "[" in complex_input and "]" in complex_input:
-  #      return parse_formula(complex_input)
-   # else:
-    #    return parse_name(complex_input)
-
-
-#view_complex_3d("[Fe(CN)6]4-")
