@@ -350,6 +350,9 @@ def predict_spectrum(
             metal         = parsed.metal,
         )
 
+        # exclude bridging bands so they dont show on the spectra
+        bands = [b for b in bands if b.coordination not in ("bridging", "free")]
+
         if not bands:
             warnings.append(
                 f"No {spectrum_type} bands found for ligand "

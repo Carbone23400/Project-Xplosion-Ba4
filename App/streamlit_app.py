@@ -13,7 +13,7 @@ from coordchem.parser import parse_formula, FormulaParseError
 from coordchem.geometry import geometry_report
 from coordchem.complex import Complex
 from coordchem.spectra.predictor import predict_spectrum
-from coordchem.spectra.renderer import plot_spectrum, build_spectrum
+from coordchem.spectra.renderer import plot_spectrum 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -81,8 +81,9 @@ with st.sidebar:
 
     st.divider()
     st.caption(
-        "**Supported ligands:** CN CO NH₃ H₂O Cl Br I OH NO₂ ONO SCN NCS "
-        "NO N₃ en ox acac py dmso PPh₃"
+        "**Supported ligands:** CN CO NH₃ H₂O Cl Br I OH NO₂ ONO SCN NCS"
+        "NO N₃ en ox acac py dmso PPh₃ PMe3 PEt3 phen bipy EDTA Cp tpy"
+
     )
 
 if not user_input.strip():
@@ -110,6 +111,7 @@ for w in parsed.warnings:
     st.warning(w)
 
 # Complex info
+st.subheader(f"Formula : {parsed.raw_formula} , name: {parsed.iupac_name}")
 st.subheader("Complex Information")
 c1, c2, c3, c4, c5 = st.columns(5)
 ox = parsed.oxidation_state
