@@ -57,8 +57,8 @@ def render_3d_view(complex_obj: Complex, width: int = 500, height: int = 400):
 # ---------------------------------------------------------------------------
 
 st.set_page_config(page_title="CoordAnalyst", page_icon="⚛️", layout="wide")
-st.title("⚛️ CoordAnalyst : Coordination Complex Spectra Predictor")
-st.caption("Educational tool · ±20–50 cm⁻¹ accuracy · data from Nakamoto 6th ed.")
+st.title("CoordAnalyst : Coordination Complex Spectra Predictor")
+st.caption("±20–50 cm⁻¹ accuracy · data from Nakamoto 6th ed.")
 
 with st.sidebar:
     st.header("Complex Input")
@@ -68,7 +68,7 @@ with st.sidebar:
     if input_mode == "Formula":
         user_input = st.text_input("Enter a coordination complex formula", value="[Fe(CN)6]4-")
     else:
-        user_input = st.text_input("Enter a complex name", value="hexacyanoferrate(II)")
+        user_input = st.text_input("Enter a coordination complex name", value="hexacyanoferrate(II)")
 
     analyze = st.button("Analyze", type="primary", use_container_width=True)
 
