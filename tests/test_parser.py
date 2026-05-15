@@ -247,10 +247,27 @@ class TestCounterIons:
     def test_potassium_counter_ion(self):
         r = parse("K4[Fe(CN)6]")
         assert r.counter_ions.get("K") == 4
+        assert r.complex_charge == -4
+        assert r.oxidation_state == 2
 
     def test_sodium_counter_ion(self):
         r = parse("Na2[PtCl4]")
         assert r.counter_ions.get("Na") == 2
+        assert r.complex_charge == -2
+        assert r.oxidation_state == 2
+
+    def test_trailing_chloride_counter_ions(self):
+        r = parse("[Fe(en)3]Cl3")
+        assert r.counter_ions.get("Cl") == 3
+        assert r.complex_charge == 3
+        assert r.oxidation_state == 3
+        assert r.ligands == {"en": 3}
+
+    def test_explicit_charge_with_trailing_counter_ions(self):
+        r = parse("[Co(NH3)6]3+Cl3")
+        assert r.counter_ions.get("Cl") == 3
+        assert r.complex_charge == 3
+        assert r.oxidation_state == 3
 
     def test_no_counter_ion(self):
         r = parse("[Cu(NH3)4]2+")

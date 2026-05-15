@@ -1,7 +1,7 @@
 """
 tests/test_structure_3d.py
 --------------------------
-Tests for ``coordchem.viz.structure_3d``.
+Tests for ``coordchem.viz.molecule3D``.
 
 Run with:
     python -m pytest tests/test_structure_3d.py -v
@@ -15,7 +15,7 @@ from rdkit import Chem  # noqa: E402
 
 from coordchem.complex import Complex  # noqa: E402
 from coordchem.parser import parse_formula  # noqa: E402
-from coordchem.viz.structure_3d import (  # noqa: E402
+from coordchem.viz.molecule3D import (  # noqa: E402
     build_complex_3d,
     build_ligand_3d,
     find_donor_atom,

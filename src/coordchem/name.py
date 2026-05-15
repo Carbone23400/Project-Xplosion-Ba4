@@ -1,5 +1,6 @@
 # give the information about mol from its name
 
+#run with python -m coordchem.name
 
 import re
 
@@ -171,22 +172,16 @@ def build_formula(metal: str, ligands: dict, oxidation_state: int,
     return f"[{inner}]{charge_str}"
 
 def parse_name(name: str) -> ParsedComplex:
-    metal= metal_data(name)
-    oxidation_state= extract_complex_charge_from_name(name)
-    ligands= ligand_data(name)
-
-    formula = build_formula(metal, ligands, oxidation_state or 0,
-                        sum(KNOWN_LIGANDS.get(l, ("", 0))[1] * c 
-                            for l, c in ligands.items()))
-
-    result = ParsedComplex(metal=metal, ligands=ligands, complex_charge=0,counter_ions={}, raw_formula=formula)
-    result.iupac_name = name
+     raw_name= name
+     metal= metal_data(name)
+     oxydation_state= extract_complex_charge_from_name(name)
+     ligands= ligand_data(name)
 
     _enrich(result)
 
-    if oxidation_state is not None:
-          result.oxidation_state=oxidation_state
-          result.complex_charge=oxidation_state + result.total_ligand_charge
+     if oxydation_state is not None:
+          result.oxidation_state=oxydation_state
+          result.complex_charge=oxydation_state + result.total_ligand_charge
           _apply_ambidentate_donor_assignments(result)
     return result
 
@@ -194,4 +189,11 @@ def parse_name(name: str) -> ParsedComplex:
 def _normalize_name(name: str) -> str:
     """Normalize a coordination compound name for simple substring matching."""
     return re.sub(r"[\s_\-()]+", "", name).lower()
+
+#test
+if __name__=="__main__":
+     name = input ("complex name is:")
+     complex_info=parse_name(name)
+     print(complex_info)
+
 

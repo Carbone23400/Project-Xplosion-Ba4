@@ -88,10 +88,11 @@ def test_diagram_2d_svg_accepts_title():
     assert "</svg>" in svg
 
 
-def test_diagram_2d_svg_uses_generated_coordination_name_by_default():
+def test_diagram_2d_svg_does_not_print_generated_coordination_name_by_default():
     svg = diagram_2d_svg("[Co(EDTA)]-")
 
-    assert "ethylenediaminetetraacetatocobaltate(III)" in svg
+    assert "<svg" in svg
+    assert "ethylenediaminetetraacetatocobaltate(III)" not in svg
 
 
 # ============================================================================
@@ -216,8 +217,8 @@ def test_cp2_complex_uses_sandwich_centroid_representation():
     assert "atom-0 atom-2" in svg
     assert ">Fe<" in svg
     assert "font-weight:400" in svg
-    assert "dicyclopentadienyliron(II)" in svg
-    assert ">sandwich<" in svg
+    assert "dicyclopentadienyliron(II)" not in svg
+    assert ">sandwich<" not in svg
 
 
 def test_phen_uses_1_10_phenanthroline_donor_pattern():
@@ -720,7 +721,9 @@ def test_diagram_2d_svg_accepts_geometry_override():
         geometry_override="square antiprismatic",
     )
 
-    assert "square antiprismatic" in svg
+    assert "<svg" in svg
+    assert "coordchem-antiprism-frame" in svg
+    assert "square antiprismatic" not in svg
     assert "coordchem-antiprism-frame-layer" in svg
     assert svg.count("class='coordchem-antiprism-frame'") == 8
     assert "width='350.0'" not in svg
@@ -947,6 +950,6 @@ def test_ambiguous_dmso_svg_draws_s_and_o_bound_panels():
     assert [legend for _, _, legend in variants] == ["octahedral", "octahedral"]
     assert [variant.donor_atoms["dmso"] for variant, _, _ in variants] == ["S", "O"]
     assert "width='350.0' height='700.0' x='0.0'" in svg
-    assert "hexadimethylsulfoxidenickel(II)" in svg
+    assert "hexadimethylsulfoxidenickel(II)" not in svg
     assert "DMSO-S" not in svg
     assert "DMSO-O" not in svg
