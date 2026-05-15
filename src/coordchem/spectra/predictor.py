@@ -351,7 +351,7 @@ def predict_spectrum(
         )
 
         # exclude bridging bands so they dont show on the spectra
-        bands = [b for b in bands if b.coordination != "bridging"]
+        bands = [b for b in bands if b.coordination not in ("bridging", "free")]
 
         if not bands:
             warnings.append(
