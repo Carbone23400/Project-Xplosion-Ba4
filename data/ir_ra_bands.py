@@ -325,6 +325,155 @@ SEED_BANDS = [
     ("PPh3","terminal", "any", "IR",   1430, 1440, "strong",      "P–Ph stretch",         True,  False, "Socrates p.221"),
     ("PPh3","terminal", "any", "IR",    680,  700, "strong",      "Ph ring deformation",  True,  False, "Socrates p.221"),
     ("PPh3","terminal", "any", "Raman", 160,  200, "strong",      "M–P stretch",          False, True,  "Nakamoto Vol.2 p.330"),
+
+    # =========================================================================
+    # 1,10-PHENANTHROLINE  phen   (Nakamoto Vol.2 pp. 302–315)
+    # Very similar to bipyridine but with an extra fused ring.
+    # Diagnostic bands: ring stretches around 1500–1600 cm⁻¹,
+    # strong C-H out-of-plane bends around 730–850 cm⁻¹.
+    # =========================================================================
+    ("phen", "chelate", "any", "IR",   3020, 3080, "medium",      "C–H stretch (aromatic)",      True,  False, "Nakamoto Vol.2 p.304"),
+    ("phen", "chelate", "any", "IR",   1580, 1640, "strong",      "C=C / C=N ring stretch",      True,  False, "Nakamoto Vol.2 p.304"),
+    ("phen", "chelate", "any", "IR",   1490, 1530, "strong",      "C=C ring stretch",            True,  False, "Nakamoto Vol.2 p.305"),
+    ("phen", "chelate", "any", "IR",   1400, 1450, "medium",      "C–H in-plane bend",           True,  False, "Nakamoto Vol.2 p.305"),
+    ("phen", "chelate", "any", "IR",    840,  880, "strong",      "C–H out-of-plane bend",       True,  False, "Nakamoto Vol.2 p.305"),
+    ("phen", "chelate", "any", "IR",    720,  760, "strong",      "ring out-of-plane bend",      True,  False, "Nakamoto Vol.2 p.306"),
+    ("phen", "chelate", "any", "IR",    400,  460, "medium",      "M–N stretch",                 True,  False, "Nakamoto Vol.2 p.306"),
+    # Raman
+    ("phen", "chelate", "any", "Raman",1580, 1640, "very strong", "C=C / C=N ring stretch",      False, True,  "Nakamoto Vol.2 p.304"),
+    ("phen", "chelate", "any", "Raman",1300, 1350, "strong",      "C–H in-plane bend",           False, True,  "Nakamoto Vol.2 p.305"),
+    ("phen", "chelate", "any", "Raman",1000, 1030, "very strong", "ring breathing mode",         False, True,  "Nakamoto Vol.2 p.305"),
+    ("phen", "chelate", "any", "Raman", 400,  460, "medium",      "M–N stretch",                 False, True,  "Nakamoto Vol.2 p.306"),
+
+    # =========================================================================
+    # 2,2'-BIPYRIDINE  bipy / bpy   (Nakamoto Vol.2 pp. 302–315)
+    # Very similar to phen. Key difference: slightly lower ring stretch
+    # frequencies due to less conjugation. M-N stretch is diagnostic.
+    # =========================================================================
+    ("bipy", "chelate", "any", "IR",   3000, 3080, "medium",      "C–H stretch (aromatic)",      True,  False, "Nakamoto Vol.2 p.303"),
+    ("bipy", "chelate", "any", "IR",   1590, 1640, "strong",      "C=C / C=N ring stretch",      True,  False, "Nakamoto Vol.2 p.304"),
+    ("bipy", "chelate", "any", "IR",   1460, 1510, "strong",      "C=C ring stretch",            True,  False, "Nakamoto Vol.2 p.304"),
+    ("bipy", "chelate", "any", "IR",   1390, 1440, "medium",      "C–H in-plane bend",           True,  False, "Nakamoto Vol.2 p.305"),
+    ("bipy", "chelate", "any", "IR",    730,  770, "strong",      "C–H out-of-plane bend",       True,  False, "Nakamoto Vol.2 p.305"),
+    ("bipy", "chelate", "any", "IR",    620,  660, "medium",      "ring out-of-plane bend",      True,  False, "Nakamoto Vol.2 p.306"),
+    ("bipy", "chelate", "any", "IR",    390,  450, "medium",      "M–N stretch",                 True,  False, "Nakamoto Vol.2 p.306"),
+    # Raman
+    ("bipy", "chelate", "any", "Raman",1590, 1640, "very strong", "C=C / C=N ring stretch",      False, True,  "Nakamoto Vol.2 p.304"),
+    ("bipy", "chelate", "any", "Raman",1270, 1320, "strong",      "C–H in-plane bend",           False, True,  "Nakamoto Vol.2 p.305"),
+    ("bipy", "chelate", "any", "Raman", 990, 1020, "very strong", "ring breathing mode",         False, True,  "Nakamoto Vol.2 p.305"),
+    ("bipy", "chelate", "any", "Raman", 390,  450, "medium",      "M–N stretch",                 False, True,  "Nakamoto Vol.2 p.306"),
+    # bpy is the same ligand as bipy — add identical entries under "bpy"
+    ("bpy",  "chelate", "any", "IR",   3000, 3080, "medium",      "C–H stretch (aromatic)",      True,  False, "Nakamoto Vol.2 p.303"),
+    ("bpy",  "chelate", "any", "IR",   1590, 1640, "strong",      "C=C / C=N ring stretch",      True,  False, "Nakamoto Vol.2 p.304"),
+    ("bpy",  "chelate", "any", "IR",   1460, 1510, "strong",      "C=C ring stretch",            True,  False, "Nakamoto Vol.2 p.304"),
+    ("bpy",  "chelate", "any", "IR",    730,  770, "strong",      "C–H out-of-plane bend",       True,  False, "Nakamoto Vol.2 p.305"),
+    ("bpy",  "chelate", "any", "IR",    390,  450, "medium",      "M–N stretch",                 True,  False, "Nakamoto Vol.2 p.306"),
+    ("bpy",  "chelate", "any", "Raman",1590, 1640, "very strong", "C=C / C=N ring stretch",      False, True,  "Nakamoto Vol.2 p.304"),
+    ("bpy",  "chelate", "any", "Raman", 990, 1020, "very strong", "ring breathing mode",         False, True,  "Nakamoto Vol.2 p.305"),
+    ("bpy",  "chelate", "any", "Raman", 390,  450, "medium",      "M–N stretch",                 False, True,  "Nakamoto Vol.2 p.306"),
+
+    # =========================================================================
+    # TERPYRIDINE  tpy / terpy   (Nakamoto Vol.2 pp. 302–315)
+    # Tridentate version of bipyridine. Three pyridine rings.
+    # Very similar band pattern to bipy but slightly shifted due to
+    # the additional ring and meridional coordination mode.
+    # =========================================================================
+    ("tpy",  "chelate", "any", "IR",   3000, 3090, "medium",      "C–H stretch (aromatic)",      True,  False, "Nakamoto Vol.2 p.303"),
+    ("tpy",  "chelate", "any", "IR",   1580, 1630, "strong",      "C=C / C=N ring stretch",      True,  False, "Nakamoto Vol.2 p.304"),
+    ("tpy",  "chelate", "any", "IR",   1460, 1510, "strong",      "C=C ring stretch",            True,  False, "Nakamoto Vol.2 p.304"),
+    ("tpy",  "chelate", "any", "IR",   1390, 1430, "medium",      "C–H in-plane bend",           True,  False, "Nakamoto Vol.2 p.305"),
+    ("tpy",  "chelate", "any", "IR",    770,  810, "strong",      "C–H out-of-plane bend",       True,  False, "Nakamoto Vol.2 p.305"),
+    ("tpy",  "chelate", "any", "IR",    380,  440, "medium",      "M–N stretch",                 True,  False, "Nakamoto Vol.2 p.306"),
+    # Raman
+    ("tpy",  "chelate", "any", "Raman",1580, 1630, "very strong", "C=C / C=N ring stretch",      False, True,  "Nakamoto Vol.2 p.304"),
+    ("tpy",  "chelate", "any", "Raman",1000, 1030, "very strong", "ring breathing mode",         False, True,  "Nakamoto Vol.2 p.305"),
+    ("tpy",  "chelate", "any", "Raman", 380,  440, "medium",      "M–N stretch",                 False, True,  "Nakamoto Vol.2 p.306"),
+    # terpy alias
+    ("terpy","chelate", "any", "IR",   1580, 1630, "strong",      "C=C / C=N ring stretch",      True,  False, "Nakamoto Vol.2 p.304"),
+    ("terpy","chelate", "any", "IR",    770,  810, "strong",      "C–H out-of-plane bend",       True,  False, "Nakamoto Vol.2 p.305"),
+    ("terpy","chelate", "any", "IR",    380,  440, "medium",      "M–N stretch",                 True,  False, "Nakamoto Vol.2 p.306"),
+    ("terpy","chelate", "any", "Raman",1580, 1630, "very strong", "C=C / C=N ring stretch",      False, True,  "Nakamoto Vol.2 p.304"),
+    ("terpy","chelate", "any", "Raman",1000, 1030, "very strong", "ring breathing mode",         False, True,  "Nakamoto Vol.2 p.305"),
+
+    # =========================================================================
+    # EDTA  ethylenediaminetetraacetato   (Nakamoto Vol.2 pp. 195–230)
+    # Hexadentate ligand — four carboxylate arms + two amine nitrogens.
+    # Dominant bands: carboxylate C=O stretches (very strong),
+    # C-N stretches, and M-N/M-O stretches.
+    # =========================================================================
+    ("EDTA", "chelate", "any", "IR",   1580, 1650, "very strong", "COO⁻ asym. stretch",          True,  False, "Nakamoto Vol.2 p.218"),
+    ("EDTA", "chelate", "any", "IR",   1380, 1420, "strong",      "COO⁻ sym. stretch",           True,  False, "Nakamoto Vol.2 p.218"),
+    ("EDTA", "chelate", "any", "IR",   2850, 2980, "medium",      "C–H stretch (CH₂)",           True,  False, "Nakamoto Vol.2 p.219"),
+    ("EDTA", "chelate", "any", "IR",   3150, 3300, "medium",      "N–H stretch",                 True,  False, "Nakamoto Vol.2 p.219"),
+    ("EDTA", "chelate", "any", "IR",   1280, 1350, "medium",      "C–N stretch",                 True,  False, "Nakamoto Vol.2 p.220"),
+    ("EDTA", "chelate", "any", "IR",    500,  600, "medium",      "M–O stretch (carboxylate)",   True,  False, "Nakamoto Vol.2 p.221"),
+    ("EDTA", "chelate", "any", "IR",    350,  450, "medium",      "M–N stretch",                 True,  False, "Nakamoto Vol.2 p.221"),
+    # Raman
+    ("EDTA", "chelate", "any", "Raman",1380, 1420, "strong",      "COO⁻ sym. stretch",           False, True,  "Nakamoto Vol.2 p.218"),
+    ("EDTA", "chelate", "any", "Raman",1280, 1350, "medium",      "C–N stretch",                 False, True,  "Nakamoto Vol.2 p.220"),
+    ("EDTA", "chelate", "any", "Raman", 500,  600, "strong",      "M–O stretch (carboxylate)",   False, True,  "Nakamoto Vol.2 p.221"),
+    ("EDTA", "chelate", "any", "Raman", 350,  450, "medium",      "M–N stretch",                 False, True,  "Nakamoto Vol.2 p.221"),
+    # edta lowercase alias
+    ("edta", "chelate", "any", "IR",   1580, 1650, "very strong", "COO⁻ asym. stretch",          True,  False, "Nakamoto Vol.2 p.218"),
+    ("edta", "chelate", "any", "IR",   1380, 1420, "strong",      "COO⁻ sym. stretch",           True,  False, "Nakamoto Vol.2 p.218"),
+    ("edta", "chelate", "any", "IR",    500,  600, "medium",      "M–O stretch (carboxylate)",   True,  False, "Nakamoto Vol.2 p.221"),
+    ("edta", "chelate", "any", "IR",    350,  450, "medium",      "M–N stretch",                 True,  False, "Nakamoto Vol.2 p.221"),
+    ("edta", "chelate", "any", "Raman",1380, 1420, "strong",      "COO⁻ sym. stretch",           False, True,  "Nakamoto Vol.2 p.218"),
+    ("edta", "chelate", "any", "Raman", 500,  600, "strong",      "M–O stretch (carboxylate)",   False, True,  "Nakamoto Vol.2 p.221"),
+
+    # =========================================================================
+    # CYCLOPENTADIENYL  Cp   (Nakamoto Vol.2 pp. 334–360)
+    # η5-ligand — bonds through all five carbon atoms (hapticity 5).
+    # Very characteristic: C-H stretch ~3080 cm⁻¹, ring stretch ~1400 cm⁻¹,
+    # C-H out-of-plane bend ~800 cm⁻¹, and M-ring tilt/stretch below 500.
+    # Ferrocene [Fe(Cp)2] is the benchmark complex.
+    # =========================================================================
+    ("Cp",   "chelate", "any", "IR",   3060, 3110, "medium",      "C–H stretch (Cp ring)",       True,  False, "Nakamoto Vol.2 p.336"),
+    ("Cp",   "chelate", "any", "IR",   1390, 1440, "strong",      "C=C ring stretch",            True,  False, "Nakamoto Vol.2 p.337"),
+    ("Cp",   "chelate", "any", "IR",   1000, 1030, "medium",      "C–H in-plane bend",           True,  False, "Nakamoto Vol.2 p.338"),
+    ("Cp",   "chelate", "any", "IR",    780,  830, "very strong", "C–H out-of-plane bend",       True,  False, "Nakamoto Vol.2 p.338"),
+    ("Cp",   "chelate", "any", "IR",    440,  500, "medium",      "M–ring tilt",                 True,  False, "Nakamoto Vol.2 p.340"),
+    ("Cp",   "chelate", "any", "IR",    300,  400, "medium",      "M–ring stretch",              True,  False, "Nakamoto Vol.2 p.340"),
+    # Fe specific — ferrocene benchmark
+    ("Cp",   "chelate", "Fe", "IR",     478,  478, "medium",      "M–ring tilt (ferrocene)",     True,  False, "Nakamoto Vol.2 p.341"),
+    ("Cp",   "chelate", "Fe", "IR",     309,  309, "medium",      "M–ring stretch (ferrocene)",  True,  False, "Nakamoto Vol.2 p.341"),
+    # Raman — ring breathing and M-ring stretch are particularly strong
+    ("Cp",   "chelate", "any", "Raman",3060, 3110, "medium",      "C–H stretch (Cp ring)",       False, True,  "Nakamoto Vol.2 p.336"),
+    ("Cp",   "chelate", "any", "Raman",1390, 1440, "strong",      "C=C ring stretch",            False, True,  "Nakamoto Vol.2 p.337"),
+    ("Cp",   "chelate", "any", "Raman", 900,  940, "very strong", "ring breathing mode",         False, True,  "Nakamoto Vol.2 p.338"),
+    ("Cp",   "chelate", "any", "Raman", 300,  400, "very strong", "M–ring stretch",              False, True,  "Nakamoto Vol.2 p.340"),
+    ("Cp",   "chelate", "Fe", "Raman",  309,  309, "very strong", "M–ring stretch (ferrocene)",  False, True,  "Nakamoto Vol.2 p.341"),
+
+    # =========================================================================
+    # TRIMETHYLPHOSPHINE  PMe3   (Nakamoto Vol.2 pp. 326–333; Socrates p.221)
+    # Monodentate P-donor ligand. Key bands: P-C stretch ~700 cm⁻¹,
+    # C-H stretches ~2900 cm⁻¹, and M-P stretch (Raman active) ~200–350 cm⁻¹.
+    # =========================================================================
+    ("PMe3", "terminal", "any", "IR",  2880, 2980, "medium",      "C–H stretch (CH₃)",           True,  False, "Socrates p.221"),
+    ("PMe3", "terminal", "any", "IR",  1400, 1460, "medium",      "CH₃ deformation",             True,  False, "Socrates p.221"),
+    ("PMe3", "terminal", "any", "IR",   920,  980, "medium",      "CH₃ rock",                    True,  False, "Socrates p.222"),
+    ("PMe3", "terminal", "any", "IR",   680,  730, "strong",      "P–C stretch",                 True,  False, "Nakamoto Vol.2 p.328"),
+    ("PMe3", "terminal", "any", "IR",   280,  350, "medium",      "M–P stretch",                 True,  False, "Nakamoto Vol.2 p.330"),
+    # Raman — M-P stretch very strong
+    ("PMe3", "terminal", "any", "Raman",2880, 2980, "medium",     "C–H stretch (CH₃)",           False, True,  "Socrates p.221"),
+    ("PMe3", "terminal", "any", "Raman", 680,  730, "strong",     "P–C stretch",                 False, True,  "Nakamoto Vol.2 p.328"),
+    ("PMe3", "terminal", "any", "Raman", 280,  350, "very strong","M–P stretch",                 False, True,  "Nakamoto Vol.2 p.330"),
+
+    # =========================================================================
+    # TRIETHYLPHOSPHINE  PEt3   (Nakamoto Vol.2 pp. 326–333; Socrates p.222)
+    # Similar to PMe3 but with ethyl groups. P-C stretch shifts slightly.
+    # Additional CH₂ bands from the ethyl chains.
+    # =========================================================================
+    ("PEt3", "terminal", "any", "IR",  2850, 2980, "medium",      "C–H stretch (CH₂/CH₃)",      True,  False, "Socrates p.222"),
+    ("PEt3", "terminal", "any", "IR",  1440, 1470, "medium",      "CH₂ scissor",                 True,  False, "Socrates p.222"),
+    ("PEt3", "terminal", "any", "IR",  1370, 1400, "medium",      "CH₃ deformation",             True,  False, "Socrates p.222"),
+    ("PEt3", "terminal", "any", "IR",   700,  760, "strong",      "P–C stretch",                 True,  False, "Nakamoto Vol.2 p.329"),
+    ("PEt3", "terminal", "any", "IR",   250,  330, "medium",      "M–P stretch",                 True,  False, "Nakamoto Vol.2 p.330"),
+    # Raman
+    ("PEt3", "terminal", "any", "Raman",2850, 2980, "medium",     "C–H stretch (CH₂/CH₃)",      False, True,  "Socrates p.222"),
+    ("PEt3", "terminal", "any", "Raman", 700,  760, "strong",     "P–C stretch",                 False, True,  "Nakamoto Vol.2 p.329"),
+    ("PEt3", "terminal", "any", "Raman", 250,  330, "very strong","M–P stretch",                 False, True,  "Nakamoto Vol.2 p.330"),
+
 ]
 
 

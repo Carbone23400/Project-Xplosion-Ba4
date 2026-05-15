@@ -103,6 +103,10 @@ class Complex:
     @property
     def raw_formula(self) -> str:
         return self.parsed.raw_formula
+    
+    @property
+    def iupac_name(self) -> str:
+        return self.parsed.iupac_name
 
     @property
     def warnings(self) -> list[str]:
