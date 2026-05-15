@@ -29,6 +29,16 @@ def bands_to_df(result):
             "Assignment":     b.assignment,
         })
     return pd.DataFrame(rows)
+def render_2d_view(complex_obj: Complex, size: int = 520):
+    """Render a 2D SVG depiction of ``complex_obj`` inside the current Streamlit page."""
+    import streamlit.components.v1 as components
+
+    try:
+        svg = complex_obj.draw_2d_svg(size=size, title="")
+    except Exception as exc:
+        st.warning(f"Could not build a 2D drawing: {exc}")
+        return
+    components.html(svg, width=size, height=size + 20)
 
 def render_3d_view(complex_obj: Complex, width: int = 500, height: int = 400):
     """Render a 3D view of ``complex_obj`` inside the current Streamlit page."""
@@ -121,8 +131,11 @@ with st.expander("Ligand details", expanded=True):
         })
     st.dataframe(pd.DataFrame(lig_rows), use_container_width=True, hide_index=True)
 
+complex_obj = Complex(parsed)
+with st.expander("2D Diagram", expanded=True):
+    render_2d_view(complex_obj)
 with st.expander("3D Structure", expanded=True):
-    render_3d_view(Complex(parsed))
+    render_3d_view(complex_obj)
 
 st.divider()
 
