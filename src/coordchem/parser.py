@@ -71,6 +71,31 @@ COUNTER_IONS: dict[str, int] = {
     "PO4" : -3,
 }
 
+COUNTER_ION_NAMES: dict[str, str] = {
+    "K"   : "potassium",
+    "Na"  : "sodium",
+    "Li"  : "lithium",
+    "Rb"  : "rubidium",
+    "Cs"  : "cesium",
+    "Ca"  : "calcium",
+    "Ba"  : "barium",
+    "Mg"  : "magnesium",
+    "Sr"  : "strontium",
+    "NH4" : "ammonium",
+    "Cl"  : "chloride",
+    "Br"  : "bromide",
+    "I"   : "iodide",
+    "F"   : "fluoride",
+    "NO3" : "nitrate",
+    "ClO4": "perchlorate",
+    "BF4" : "tetrafluoroborate",
+    "PF6" : "hexafluorophosphate",
+    "SO4" : "sulfate",
+    "CO3" : "carbonate",
+    "C2O4": "oxalate",
+    "PO4" : "phosphate",
+}
+
 # All known metal symbols (subset most relevant to coordination chemistry)
 METALS: set[str] = {
     "Li", "Be", "Na", "Mg", "Al", "K",  "Ca", "Sc", "Ti", "V",
@@ -560,7 +585,7 @@ def get_iupac_name(parsed) -> str:
     ligand_str = "".join(ligand_parts)
 
     # Metal name — lowercase
-    METAL_NAMES = {
+    ANION_METAL_NAMES = {
         "Fe": "ferrate", "Cu": "cuprate", "Co": "cobaltate",
         "Ni": "nickelate", "Cr": "chromate", "Mn": "manganate",
         "Pt": "platinate", "Pd": "palladate", "Au": "aurate",
@@ -570,15 +595,38 @@ def get_iupac_name(parsed) -> str:
         "Ti": "titanate",   "Cd": "cadmate",
     }
 
+    CATION_METAL_NAMES = {
+        "Fe": "iron", "Cu": "copper", "Co": "cobalt",
+        "Ni": "nickel", "Cr": "chromium", "Mn": "manganese",
+        "Pt": "platinum", "Pd": "palladium", "Au": "gold",
+        "Ag": "silver", "Zn": "zinc", "Mo": "molybdenum",
+        "W": "tungsten", "Ru": "ruthenium", "Os": "osmium",
+        "Rh": "rhodium", "Ir": "iridium", "V": "vanadium",
+        "Ti": "titanium", "Cd": "cadmium",
+    }
+
     ox = parsed.oxidation_state
     ox_str     = f"({_roman(ox)})" if ox is not None else ""
-    metal_name = METAL_NAMES.get(parsed.metal, parsed.metal.lower() + "ate")
+    metal_name = ANION_METAL_NAMES.get(parsed.metal, parsed.metal.lower() + "ate")
 
     # If complex charge is positive or zero, use metal name directly (cation)
     if parsed.complex_charge >= 0:
-        metal_name = parsed.metal.lower()
+        metal_name = CATION_METAL_NAMES.get(parsed.metal, parsed.metal.lower())
 
-    return f"{ligand_str}{metal_name}{ox_str}"
+    complex_name = f"{ligand_str}{metal_name}{ox_str}"
+    if not parsed.counter_ions:
+        return complex_name
+
+    leading_counter_ions = []
+    trailing_counter_ions = []
+    for ion in parsed.counter_ions:
+        ion_name = COUNTER_ION_NAMES.get(ion, ion.lower())
+        if COUNTER_IONS.get(ion, 0) > 0:
+            leading_counter_ions.append(ion_name)
+        else:
+            trailing_counter_ions.append(ion_name)
+
+    return " ".join(leading_counter_ions + [complex_name] + trailing_counter_ions)
 
 
 def _roman(n: int) -> str:

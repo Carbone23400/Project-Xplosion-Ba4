@@ -110,8 +110,12 @@ except Exception as e:
 for w in parsed.warnings:
     st.warning(w)
 
-# Complex info
-st.subheader(f"Formula : {parsed.raw_formula} , name: {parsed.iupac_name}")
+# Complex identity
+st.subheader("Complex Identity")
+name_col, formula_col = st.columns(2)
+name_col.markdown(f"**Name:** {parsed.iupac_name}")
+formula_col.markdown(f"**Formula:** {parsed.raw_formula}")
+
 st.subheader("Complex Information")
 c1, c2, c3, c4, c5 = st.columns(5)
 ox = parsed.oxidation_state
