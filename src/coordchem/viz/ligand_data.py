@@ -8,6 +8,7 @@ from __future__ import annotations
 
 
 LIGAND_SMILES: dict[str, str] = {
+    "CH3": "[CH3-]",
     "NH3": "N",
     "H2O": "O",
     "Cl": "[Cl-]",
@@ -46,6 +47,7 @@ LIGAND_SMILES: dict[str, str] = {
 
 
 LIGAND_DONOR_INDEX_OVERRIDES: dict[str, tuple[int, ...]] = {
+    "CH3": (0,),
     "NH3": (0,),
     "H2O": (0,),
     "OH": (0,),
