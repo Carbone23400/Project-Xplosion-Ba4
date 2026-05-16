@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from coordchem.parser import parse_formula, FormulaParseError
+from coordchem.parser import KNOWN_LIGANDS, parse_formula, FormulaParseError
 from coordchem.geometry import geometry_report
 from coordchem.complex import Complex
 from coordchem.spectra.predictor import predict_spectrum
@@ -54,6 +54,11 @@ def render_3d_view(complex_obj: Complex, width: int = 500, height: int = 400):
     components.html(html, width=width, height=height + 20)
 
 
+def supported_ligands_text() -> str:
+    """Return ligands in the same order as the parser's KNOWN_LIGANDS table."""
+    return " ".join(KNOWN_LIGANDS)
+
+
 # ---------------------------------------------------------------------------
 # App layout
 # ---------------------------------------------------------------------------
@@ -80,11 +85,7 @@ with st.sidebar:
     sigma         = st.slider("Peak width σ (cm⁻¹)", min_value=5, max_value=60, value=20, step=5)
 
     st.divider()
-    st.caption(
-        "**Supported ligands:** CN CO NH₃ H₂O Cl Br I OH NO₂ ONO SCN NCS"
-        "NO N₃ en ox acac py dmso PPh₃ PMe3 PEt3 phen bipy EDTA Cp tpy"
-
-    )
+    st.caption(f"**Supported ligands:** {supported_ligands_text()}")
 
 if not user_input.strip():
     st.info("Enter a formula or name in the sidebar and click **Analyze**.")

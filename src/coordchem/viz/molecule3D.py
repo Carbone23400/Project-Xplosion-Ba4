@@ -5,7 +5,11 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 from coordchem.parser import ParsedComplex, parse_formula, KNOWN_LIGANDS
-from coordchem.viz.ligand_data import LIGAND_DONOR_INDEX_OVERRIDES, LIGAND_SMILES
+from coordchem.viz.ligand_data import (
+    LIGAND_DONOR_INDEX_OVERRIDES,
+    LIGAND_SMILES,
+    donor_index_overrides_for_ligand,
+)
 from coordchem.name import parse_name
 
 Position = Tuple[float, float, float]
@@ -194,7 +198,10 @@ def find_donor_atom2(
 
     raise ValueError(f"No donor atom matching {donor_symbol!r} found in ligand")
 
-def find_donor_atom(mol, donor_symbol):
+def find_donor_atom(mol, donor_symbol, override: Optional[int] = None):
+    if override is not None and 0 <= override < mol.GetNumAtoms():
+        return override
+
     for atom in mol.GetAtoms():
         if atom.GetSymbol() == donor_symbol:
             return atom.GetIdx()
@@ -1232,7 +1239,10 @@ def build_complex_3d(
             continue
 
         donor_symbol = parsed.donor_atoms.get(ligand_symbol, "?")
-        donor_overrides = LIGAND_DONOR_INDEX_OVERRIDES.get(ligand_symbol, ())
+        donor_overrides = donor_index_overrides_for_ligand(
+            ligand_symbol,
+            donor_symbol,
+        )
         denticity = parsed.ligand_denticity.get(ligand_symbol, 1)
 
         for _ in range(count):
@@ -1493,18 +1503,26 @@ def diatomic_ligand_positions(ligand_mol, donor_idx, target, bond_length=1.2):
 # Display helpers
 # ---------------------------------------------------------------------------
 
-def _to_parsed(complex_or_formula) -> ParsedComplex:
-    """Best-effort coercion to a ``ParsedComplex``."""
-    if isinstance(complex_or_formula, ParsedComplex):
-        return complex_or_formula
-    if isinstance(complex_or_formula, str):
-        return parse_complex_input(complex_or_formula)
-    parsed = getattr(complex_or_formula, "parsed", None)
+def parse_complex_input(complex_input: str | ParsedComplex) -> ParsedComplex:
+    """Accept a formula string, compound name, or already parsed complex."""
+    if isinstance(complex_input, ParsedComplex):
+        return complex_input
+    if isinstance(complex_input, str):
+        try:
+            return parse_formula(complex_input)
+        except Exception:
+            return parse_name(complex_input)
+    parsed = getattr(complex_input, "parsed", None)
     if isinstance(parsed, ParsedComplex):
         return parsed
     raise TypeError(
-        "Expected a ParsedComplex, Complex, or formula string"
+        "Expected a ParsedComplex, Complex, or formula/name string"
     )
+
+
+def _to_parsed(complex_or_formula) -> ParsedComplex:
+    """Best-effort coercion to a ``ParsedComplex``."""
+    return parse_complex_input(complex_or_formula)
 
 #function to display the molecule on a notebook
 

@@ -21,6 +21,7 @@ from coordchem.viz.molecule3D import (  # noqa: E402
     find_donor_atom,
     geometry_positions,
     octahedral_positions,
+    parse_complex_input,
 )
 
 
@@ -75,6 +76,12 @@ class TestBuildLigand:
 
 
 class TestBuildComplex:
+    def test_parse_complex_input_accepts_methyl_formula(self):
+        parsed = parse_complex_input("[Ti(CH3)4]")
+
+        assert parsed.metal == "Ti"
+        assert parsed.ligands == {"CH3": 4}
+
     def test_hexacyanoferrate_builds(self):
         parsed = parse_formula("[Fe(CN)6]4-")
         mol = build_complex_3d(parsed)
@@ -122,6 +129,28 @@ class TestBuildComplex:
             if b.GetBondType() == Chem.BondType.DATIVE
         ]
         assert len(dative_bonds) == 4
+
+    def test_methyl_complex_builds_four_ch3_ligands(self):
+        parsed = parse_formula("[Ti(CH3)4]")
+        mol = build_complex_3d(parsed)
+
+        donor_symbols = _metal_donor_symbols(mol)
+        methyl_carbons = [
+            atom
+            for atom in mol.GetAtoms()
+            if atom.GetSymbol() == "C"
+        ]
+
+        assert parsed.ligands == {"CH3": 4}
+        assert donor_symbols == ["C"] * 4
+        assert len(methyl_carbons) == 4
+        assert all(
+            sum(
+                1 for neighbor in atom.GetNeighbors()
+                if neighbor.GetSymbol() == "H"
+            ) == 3
+            for atom in methyl_carbons
+        )
 
     def test_dmso_hard_metal_uses_oxygen_donor(self):
         parsed = parse_formula("[Fe(dmso)6]3+")

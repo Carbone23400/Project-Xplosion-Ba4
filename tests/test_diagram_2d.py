@@ -264,6 +264,20 @@ def test_pme3_and_pet3_draw_as_compact_terminal_labels(formula, expected_labels)
     assert labels == expected_labels
 
 
+def test_methyl_draws_as_compact_terminal_ch3_label():
+    mol = build_coordination_mol("[Ti(CH3)4]")
+
+    labels = [
+        atom.GetProp("atomLabel")
+        for atom in mol.GetAtoms()
+        if atom.HasProp("atomLabel")
+    ]
+
+    assert mol.GetNumAtoms() == 5
+    assert labels == ["CH3", "H3C", "CH3", "CH3"]
+    assert all(atom.GetFormalCharge() == 0 for atom in mol.GetAtoms())
+
+
 def test_monodentate_labels_face_the_metal():
     mol = build_coordination_mol("[Ag(CN)2]-")
 

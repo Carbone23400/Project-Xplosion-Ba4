@@ -100,6 +100,7 @@ EXPLICIT_H_LIGANDS: set[str] = set()
 
 
 ABBREVIATED_MONODENTATE_LIGANDS: set[str] = {
+    "CH3",
     "NH3",
     "H2O",
     "Cl",
@@ -133,6 +134,7 @@ LIGAND_DISPLAY_LABELS: dict[str, tuple[str, str]] = {
 }
 
 MONODENTATE_DISPLAY_LABELS: dict[str, tuple[str, str]] = {
+    "CH3": ("CH3", "H3C"),
     "NH3": ("NH3", "H3N"),
     "H2O": ("OH2", "H2O"),
     "OH": ("OH", "HO"),
