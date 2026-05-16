@@ -50,7 +50,7 @@ KNOWN_LIGANDS: dict[str, tuple[str, int, int, str]] = {
     "acac"          : ("acetylacetonato",          -1,    2,      "O"),
     "EDTA"          : ("ethylenediaminetetraacetato", -4, 6,     "N/O"),
     "edta"          : ("ethylenediaminetetraacetato", -4, 6,     "N/O"),
-    "Cp"            : ("cyclopentadienyl",         -1,    5,      "C"),
+    "Cp"            : ("cyclopentadienyl",         -1,    1,      "C"),
     "tpy"           : ("terpyridine",               0,    3,      "N"),
     "terpy"         : ("terpyridine",               0,    3,      "N"),
     "py"            : ("pyridine",                  0,    1,      "N"),
