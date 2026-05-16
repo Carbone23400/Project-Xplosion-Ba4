@@ -325,7 +325,7 @@ SEED_BANDS = [
     ("PPh3","terminal", "any", "IR",   1430, 1440, "strong",      "P–Ph stretch",         True,  False, "Socrates p.221"),
     ("PPh3","terminal", "any", "IR",    680,  700, "strong",      "Ph ring deformation",  True,  False, "Socrates p.221"),
     ("PPh3","terminal", "any", "Raman", 160,  200, "strong",      "M–P stretch",          False, True,  "Nakamoto Vol.2 p.330"),
-
+    
     # =========================================================================
     # 1,10-PHENANTHROLINE  phen   (Nakamoto Vol.2 pp. 302–315)
     # Very similar to bipyridine but with an extra fused ring.
@@ -474,6 +474,25 @@ SEED_BANDS = [
     ("PEt3", "terminal", "any", "Raman", 700,  760, "strong",     "P–C stretch",                 False, True,  "Nakamoto Vol.2 p.329"),
     ("PEt3", "terminal", "any", "Raman", 250,  330, "very strong","M–P stretch",                 False, True,  "Nakamoto Vol.2 p.330"),
 
+    # =========================================================================
+    # METHYL  CH3⁻   (Nakamoto Vol.2 pp. 361–375; Socrates p.48)
+    # Ligand alkyle sigma-donneur. Bandes diagnostiques :
+    # C-H stretch ~2900 cm⁻¹, déformation CH3 ~1200 cm⁻¹,
+    # M-C stretch ~400–600 cm⁻¹ (très diagnostic).
+    # =========================================================================
+    ("CH3", "terminal", "any", "IR",   2900, 2990, "strong",      "C–H stretch (CH₃)",           True,  False, "Nakamoto Vol.2 p.362"),
+    ("CH3", "terminal", "any", "IR",   2800, 2870, "medium",      "C–H sym. stretch (CH₃)",      True,  False, "Nakamoto Vol.2 p.362"),
+    ("CH3", "terminal", "any", "IR",   1380, 1460, "medium",      "CH₃ sym. deformation",        True,  False, "Nakamoto Vol.2 p.363"),
+    ("CH3", "terminal", "any", "IR",   1150, 1250, "medium",      "CH₃ rock",                    True,  False, "Nakamoto Vol.2 p.364"),
+    ("CH3", "terminal", "any", "IR",    400,  600, "strong",      "M–C stretch",                 True,  False, "Nakamoto Vol.2 p.365"),
+    # Metal specific
+    ("CH3", "terminal", "Fe", "IR",     510,  540, "strong",      "Fe–C stretch",                True,  False, "Nakamoto Vol.2 p.367"),
+    ("CH3", "terminal", "Pt", "IR",     550,  590, "strong",      "Pt–C stretch",                True,  False, "Nakamoto Vol.2 p.368"),
+    ("CH3", "terminal", "Co", "IR",     480,  520, "strong",      "Co–C stretch",                True,  False, "Nakamoto Vol.2 p.367"),
+    # Raman
+    ("CH3", "terminal", "any", "Raman", 2900, 2990, "strong",     "C–H stretch (CH₃)",           False, True,  "Nakamoto Vol.2 p.362"),
+    ("CH3", "terminal", "any", "Raman", 1380, 1460, "medium",     "CH₃ sym. deformation",        False, True,  "Nakamoto Vol.2 p.363"),
+    ("CH3", "terminal", "any", "Raman",  400,  600, "very strong","M–C stretch",                 False, True,  "Nakamoto Vol.2 p.365"),
 ]
 
 
