@@ -102,8 +102,16 @@ class TestCoordinationNumberRules:
     def test_cn7(self):
         assert geom("[Mo(CN)7]4-") == "pentagonal bipyramidal or capped octahedral"
     
-    def test_cn8(self):
-        assert geom("[Zn(ox)4]4-") == "square antiprismatic or dodecahedral"
+    @pytest.mark.parametrize(
+        "formula",
+        [
+            "[TaF8]3-",
+            "[Zn(ox)4]6-",
+            "[Zr(ox)2F4]4-",
+        ],
+    )
+    def test_cn8(self, formula):
+        assert geom(formula) == "square antiprismatic or dodecahedral"
 
 # ===========================================================================
 # 4. CN = 4 special cases 

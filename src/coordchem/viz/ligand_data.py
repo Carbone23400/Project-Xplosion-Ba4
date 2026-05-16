@@ -128,7 +128,7 @@ LIGAND_DISPLAY_LABELS: dict[str, tuple[str, str]] = {
     "NH3": ("NH3", "H3N"),
     "H2O": ("OH2", "H2O"),
     "OH": ("OH", "HO"),
-    "en": ("N", "N"),
+    "en": ("NH2", "H2N"),
     "EDTA": ("NH2", "H2N"),
     "edta": ("NH2", "H2N"),
 }
@@ -154,8 +154,8 @@ MONODENTATE_DISPLAY_LABELS: dict[str, tuple[str, str]] = {
 
 POLYDENTATE_DONOR_DISPLAY_LABELS: dict[str, dict[int, tuple[str, str]]] = {
     "en": {
-        0: ("N", "N"),
-        3: ("N", "N"),
+        0: ("NH2", "H2N"),
+        3: ("NH2", "H2N"),
     },
 }
 

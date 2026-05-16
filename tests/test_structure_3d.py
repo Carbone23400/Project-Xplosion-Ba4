@@ -46,6 +46,12 @@ class TestGeometryPositions:
         pos = geometry_positions("unknown geometry", 6)
         assert len(pos) == 6
 
+    def test_geometry_positions_square_antiprismatic(self):
+        pos = geometry_positions("square antiprismatic or dodecahedral", 8)
+
+        assert len(pos) == 8
+        assert all(any(abs(component) > 0 for component in site) for site in pos)
+
 
 class TestBuildLigand:
     def test_build_water(self):
@@ -129,6 +135,25 @@ class TestBuildComplex:
             if b.GetBondType() == Chem.BondType.DATIVE
         ]
         assert len(dative_bonds) == 4
+
+    @pytest.mark.parametrize(
+        ("formula", "expected_donor_symbols"),
+        [
+            ("[TaF8]3-", ["F"] * 8),
+            ("[Zn(ox)4]6-", ["O"] * 8),
+            ("[Zr(ox)2F4]4-", ["O"] * 4 + ["F"] * 4),
+        ],
+    )
+    def test_cn8_3d_handles_monodentate_bidentate_and_mixed_ligands(
+        self,
+        formula,
+        expected_donor_symbols,
+    ):
+        parsed = parse_formula(formula)
+        mol = build_complex_3d(parsed)
+
+        assert parsed.coordination_number == 8
+        assert _metal_donor_symbols(mol) == expected_donor_symbols
 
     def test_methyl_complex_builds_four_ch3_ligands(self):
         parsed = parse_formula("[Ti(CH3)4]")

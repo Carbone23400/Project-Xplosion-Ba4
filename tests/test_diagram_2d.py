@@ -304,7 +304,7 @@ def test_edta_complex_draws_as_hexadentate_ligand():
     assert len(metal_bonds) == 6
 
 
-def test_en_donor_atoms_display_as_n_atoms_without_separate_h_atoms():
+def test_en_donor_atoms_display_as_nh2_labels_without_separate_h_atoms():
     mol = build_coordination_mol("[Co(en)3]3+")
 
     donor_atoms = [
@@ -316,11 +316,11 @@ def test_en_donor_atoms_display_as_n_atoms_without_separate_h_atoms():
 
     assert len(donor_atoms) == 6
     assert all(atom.GetAtomicNum() == 7 for atom in donor_atoms)
-    assert all(atom.GetProp("atomLabel") == "N" for atom in donor_atoms)
+    assert {atom.GetProp("atomLabel") for atom in donor_atoms} == {"NH2", "H2N"}
     assert not h_atoms
 
 
-def test_en_svg_adds_h2_annotations_next_to_n_donors():
+def test_en_svg_uses_direct_nh2_donor_labels():
     mol = build_coordination_mol("[Co(en)3]3+")
     svg = diagram_2d_svg("[Co(en)3]3+")
 
@@ -330,7 +330,7 @@ def test_en_svg_adds_h2_annotations_next_to_n_donors():
         if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}
     ]
 
-    assert all(atom.HasProp(H2_ANNOTATION_PROP) for atom in donor_atoms)
+    assert not any(atom.HasProp(H2_ANNOTATION_PROP) for atom in donor_atoms)
     assert "coordchem-h2-label" not in svg
     assert ">H2</text>" not in svg
     assert "baseline-shift" not in svg
@@ -375,7 +375,7 @@ def test_mixed_octahedral_single_bidentate_reserves_first_chelate_pair():
     en_sites = {
         (x, y)
         for label, x, y, _ in sites
-        if label == "N"
+        if label in {"NH2", "H2N"}
     }
     ammine_sites = {
         (x, y)
@@ -499,8 +499,8 @@ def test_mixed_octahedral_two_different_bidentates_and_monodentates():
     mol = build_coordination_mol("[Co(en)(ox)Cl(NH3)]")
 
     assert _metal_bond_sites_by_label(mol) == [
-        ("N", -3.0, 1.7, "BEGINDASH"),
-        ("N", 0.0, 3.5, "NONE"),
+        ("H2N", -3.0, 1.7, "BEGINDASH"),
+        ("NH2", 0.0, 3.5, "NONE"),
         ("O", 3.0, 1.7, "BEGINDASH"),
         ("O", 3.0, -1.7, "BEGINWEDGE"),
         ("Cl", 0.0, -3.5, "NONE"),
@@ -512,8 +512,8 @@ def test_octahedral_three_different_bidentates_use_chelate_site_pairs():
     mol = build_coordination_mol("[Co(en)(ox)(acac)]")
 
     assert _metal_bond_sites_by_label(mol) == [
-        ("N", -3.0, 1.7, "BEGINDASH"),
-        ("N", 0.0, 3.5, "NONE"),
+        ("H2N", -3.0, 1.7, "BEGINDASH"),
+        ("NH2", 0.0, 3.5, "NONE"),
         ("O", 3.0, 1.7, "BEGINDASH"),
         ("O", 3.0, -1.7, "BEGINWEDGE"),
         ("O", 0.0, round(-3.5 * ACAC_COORDINATION_SCALE, 2), "NONE"),
@@ -736,14 +736,13 @@ def test_diagram_2d_svg_accepts_geometry_override():
     )
 
     assert "<svg" in svg
-    assert "coordchem-antiprism-frame" in svg
+    assert "coordchem-antiprism-frame" not in svg
     assert "square antiprismatic" not in svg
-    assert "coordchem-antiprism-frame-layer" in svg
-    assert svg.count("class='coordchem-antiprism-frame'") == 8
+    assert "coordchem-antiprism-frame-layer" not in svg
     assert "width='350.0'" not in svg
 
 
-def test_cn8_square_antiprismatic_frame_uses_polydentate_donors():
+def test_cn8_square_antiprismatic_layout_uses_polydentate_donors():
     mol = build_coordination_mol("[Zn(ox)4]6-", geometry_override="square antiprismatic")
     donor_indices = [
         bond.GetOtherAtomIdx(0)
@@ -757,7 +756,33 @@ def test_cn8_square_antiprismatic_frame_uses_polydentate_donors():
     )
 
     assert donor_indices == [1, 6, 7, 12, 13, 18, 19, 24]
-    assert svg.count("class='coordchem-antiprism-frame'") == 8
+    assert "coordchem-antiprism-frame" not in svg
+
+
+@pytest.mark.parametrize(
+    ("formula", "expected_donor_symbols"),
+    [
+        ("[TaF8]3-", ["F"] * 8),
+        ("[Zn(ox)4]6-", ["O"] * 8),
+        ("[Zr(ox)2F4]4-", ["O"] * 4 + ["F"] * 4),
+    ],
+)
+def test_cn8_2d_handles_monodentate_bidentate_and_mixed_ligands(
+    formula,
+    expected_donor_symbols,
+):
+    parsed = parse_formula(formula)
+    mol = build_coordination_mol(parsed)
+    donor_symbols = [
+        mol.GetAtomWithIdx(bond.GetOtherAtomIdx(0)).GetSymbol()
+        for bond in mol.GetAtomWithIdx(0).GetBonds()
+    ]
+    svg = diagram_2d_svg(parsed)
+
+    assert parsed.coordination_number == 8
+    assert donor_symbols == expected_donor_symbols
+    assert "<svg" in svg
+    assert "coordchem-antiprism-frame" not in svg
 
 
 def test_bipy_projection_has_two_wedges_two_dashes_and_two_plain_bonds():

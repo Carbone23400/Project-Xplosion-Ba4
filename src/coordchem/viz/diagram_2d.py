@@ -399,8 +399,6 @@ def build_coordination_mol(
             if ligand_symbol == "dmso" and local_idx in donor_indices:
                 new_atom.SetNumExplicitHs(0)
                 new_atom.SetNoImplicit(True)
-            if ligand_symbol == "en" and local_idx in donor_indices:
-                new_atom.SetProp(H2_ANNOTATION_PROP, "1")
             if ligand_symbol == "ox":
                 new_atom.SetFormalCharge(0)
 
@@ -910,15 +908,9 @@ def diagram_2d_svg(
         drawer.DrawMolecules(mols, legends=legends, confIds=[0] * len(mols))
 
     h2_annotations = _h2_annotation_positions(drawer, mols, size)
-    square_antiprismatic_frame = _square_antiprismatic_frame_svg(
-        drawer,
-        mols,
-        variant_geometries,
-    )
     _draw_h2_annotations(drawer, h2_annotations)
     drawer.FinishDrawing()
     svg = drawer.GetDrawingText()
-    svg = _add_square_antiprismatic_frame(svg, square_antiprismatic_frame)
     svg = _add_interrupted_bond_styles(svg, mols)
     return _add_svg_labels(svg, size=size, title=None)
 

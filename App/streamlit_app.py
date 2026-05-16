@@ -31,27 +31,64 @@ def bands_to_df(result):
         })
     return pd.DataFrame(rows)
 
-def render_2d_view(complex_obj: Complex, size: int = 520):
-    """Render a 2D SVG depiction of ``complex_obj`` inside the current Streamlit page."""
+
+def render_centered_html(html: str, height: int):
+    """Render HTML centered inside a full-width Streamlit component."""
     import streamlit.components.v1 as components
 
+    components.html(
+        f"""
+        <div style="width:100%; display:flex; justify-content:center; align-items:center;">
+            <div style="flex:0 0 auto; max-width:100%;">
+                {html}
+            </div>
+        </div>
+        """,
+        height=height,
+        scrolling=False,
+    )
+
+
+def render_2d_view(
+    complex_obj: Complex,
+    size: int = 520,
+    geometry_override: str | None = None,
+):
+    """Render a 2D SVG depiction of ``complex_obj`` inside the current Streamlit page."""
+    from coordchem.viz.diagram_2d import diagram_2d_svg
+
     try:
-        svg = complex_obj.draw_2d_svg(size=size, title="")
+        svg = diagram_2d_svg(
+            complex_obj.parsed,
+            size=size,
+            title="",
+            geometry_override=geometry_override,
+        )
     except Exception as exc:
         st.warning(f"Could not build a 2D drawing: {exc}")
         return
-    components.html(svg, width=size, height=size + 20)
+    render_centered_html(svg, height=size + 20)
 
-def render_3d_view(complex_obj: Complex, width: int = 500, height: int = 400):
+def render_3d_view(
+    complex_obj: Complex,
+    width: int = 500,
+    height: int = 400,
+    geometry_override: str | None = None,
+):
     """Render a 3D view of ``complex_obj`` inside the current Streamlit page."""
-    import streamlit.components.v1 as components
+    from coordchem.viz.molecule3D import complex_3d_html
 
     try:
-        html = complex_obj.draw_3d_html(width=width, height=height)
+        html = complex_3d_html(
+            complex_obj.parsed,
+            width=width,
+            height=height,
+            geometry=geometry_override,
+        )
     except Exception as exc:
         st.warning(f"Could not build a 3D view: {exc}")
         return
-    components.html(html, width=width, height=height + 20)
+    render_centered_html(html, height=height + 20)
 
 
 def supported_ligands_text() -> str:
@@ -59,11 +96,51 @@ def supported_ligands_text() -> str:
     return " ".join(KNOWN_LIGANDS)
 
 
+def geometry_choices(predicted_geometry: str) -> list[str]:
+    """Return drawable geometry choices from a possibly ambiguous prediction."""
+    choices = [
+        normalized_geometry_choice(part.strip())
+        for part in predicted_geometry.split(" or ")
+        if part.strip()
+    ]
+    return list(dict.fromkeys(choices)) or [normalized_geometry_choice(predicted_geometry)]
+
+
+def normalized_geometry_choice(geometry: str) -> str:
+    """Normalize explanatory geometry labels to values used by renderers/rules."""
+    if geometry.lower().startswith("distorted square planar"):
+        return "square planar"
+    return geometry
+
+
+def geometry_label(geometry: str) -> str:
+    """Human-readable label for geometry selection controls."""
+    return geometry[:1].upper() + geometry[1:]
+
+
 # ---------------------------------------------------------------------------
 # App layout
 # ---------------------------------------------------------------------------
 
 st.set_page_config(page_title="CoordAnalyst", page_icon="⚛️", layout="wide")
+st.markdown(
+    """
+    <style>
+    div[data-testid="stMetricValue"] {
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+        line-height: 1.15;
+    }
+    div[data-testid="stMetricValue"] > div {
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 st.title("CoordAnalyst : Coordination Complex Spectra Predictor")
 st.caption("±20–50 cm⁻¹ accuracy · data from Nakamoto 6th ed.")
 
@@ -111,6 +188,24 @@ except Exception as e:
 for w in parsed.warnings:
     st.warning(w)
 
+predicted_geometry = str(report["geometry"])
+available_geometries = geometry_choices(predicted_geometry)
+selected_geometry = available_geometries[0]
+
+if len(available_geometries) > 1:
+    st.info(
+        "Several conformations are plausible for this complex. "
+        "Choose the one to use for the drawings and spectrum rules."
+    )
+    selected_geometry = st.radio(
+        "Conformation",
+        available_geometries,
+        format_func=geometry_label,
+        horizontal=True,
+    )
+
+parsed.geometry = selected_geometry
+
 # Complex identity
 st.subheader("Complex Identity")
 name_col, formula_col = st.columns(2)
@@ -118,13 +213,15 @@ name_col.markdown(f"**Name:** {parsed.iupac_name}")
 formula_col.markdown(f"**Formula:** {parsed.raw_formula}")
 
 st.subheader("Complex Information")
-c1, c2, c3, c4, c5 = st.columns(5)
+c1, c2, c3, c4, c5 = st.columns([1, 1, 1, 1, 1.7])
 ox = parsed.oxidation_state
 c1.metric("Metal",           parsed.metal)
 c2.metric("Oxidation State", f"+{ox}" if ox and ox > 0 else str(ox))
 c3.metric("Coord. Number",   parsed.coordination_number)
 c4.metric("d-count",         report["d_count"] if report["d_count"] is not None else "—")
-c5.metric("Geometry",        report["geometry"])
+c5.metric("Geometry",        geometry_label(selected_geometry))
+if selected_geometry != predicted_geometry:
+    st.caption(f"Predicted geometry: {predicted_geometry}")
 
 with st.expander("Ligand details", expanded=True):
     lig_rows = []
@@ -142,9 +239,9 @@ with st.expander("Ligand details", expanded=True):
 
 complex_obj = Complex(parsed)
 with st.expander("2D Diagram", expanded=True):
-    render_2d_view(complex_obj)
+    render_2d_view(complex_obj, geometry_override=selected_geometry)
 with st.expander("3D Structure", expanded=True):
-    render_3d_view(complex_obj)
+    render_3d_view(complex_obj, geometry_override=selected_geometry)
 
 st.divider()
 

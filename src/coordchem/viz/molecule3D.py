@@ -57,6 +57,24 @@ def square_planar_positions(distance: float = 2.0) -> list[Position]:
     ]
 
 
+def square_antiprismatic_positions(distance: float = 2.0) -> list[Position]:
+    """Return eight sites arranged as two staggered squares."""
+    z = distance * 0.45
+    radius = (distance * distance - z * z) ** 0.5
+    positions = []
+    for z_value, offset in ((z, math.pi / 4), (-z, 0.0)):
+        for i in range(4):
+            angle = offset + i * math.pi / 2
+            positions.append(
+                (
+                    radius * math.cos(angle),
+                    radius * math.sin(angle),
+                    z_value,
+                )
+            )
+    return positions
+
+
 def linear_positions(distance: float = 2.0) -> list[Position]:
     """Return two collinear positions along x."""
     return [( distance, 0.0, 0.0), (-distance, 0.0, 0.0)]
@@ -91,6 +109,7 @@ _GEOMETRY_BUILDERS = {
     "trigonal planar": trigonal_planar_positions,
     "tetrahedral": tetrahedral_positions,
     "square planar": square_planar_positions,
+    "square antiprismatic": square_antiprismatic_positions,
     "trigonal bipyramidal": trigonal_bipyramidal_positions,
     "octahedral": octahedral_positions,
 }
@@ -1531,11 +1550,12 @@ def view_complex_3d(
     width: int = 400,
     height: int = 400,
     distance: float = 2.0,
+    geometry: str | None = None,
 ):
     import py3Dmol 
 
     parsed = _to_parsed(complex_or_formula)
-    mol = build_complex_3d(parsed, distance=distance)
+    mol = build_complex_3d(parsed, distance=distance, geometry=geometry)
 
     block = Chem.MolToMolBlock(mol, kekulize=False) #pour ne pas forcer la conversion des cycles aromatiques
     view = py3Dmol.view(width=width, height=height)
@@ -1557,11 +1577,13 @@ def complex_3d_html(
     width: int = 400,
     height: int = 400,
     distance: float = 2.0,
+    geometry: str | None = None,
 ) -> str:
     view = view_complex_3d(
         complex_or_formula,
         width=width,
         height=height,
         distance=distance,
+        geometry=geometry,
     )
     return view._make_html()

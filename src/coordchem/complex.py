@@ -130,7 +130,12 @@ class Complex:
         """Return a structured report for the complex."""
         return geometry_report(self.parsed)
 
-    def draw_2d_svg(self, size: int = 700, title: str | None = None) -> str:
+    def draw_2d_svg(
+        self,
+        size: int = 700,
+        title: str | None = None,
+        geometry_override: str | None = None,
+    ) -> str:
         """
         Return an SVG depiction of the complex.
 
@@ -141,13 +146,18 @@ class Complex:
         """
         from .viz.diagram_2d import diagram_2d_svg
 
-        return diagram_2d_svg(self.parsed, size=size)
+        return diagram_2d_svg(
+            self.parsed,
+            size=size,
+            geometry_override=geometry_override,
+        )
 
     def save_2d(
         self,
         output_path: str,
         size: int = 700,
         title: str | None = None,
+        geometry_override: str | None = None,
     ):
         """
         Save a clean 2D SVG depiction to disk.
@@ -158,30 +168,53 @@ class Complex:
         """
         from .viz.diagram_2d import save_diagram_2d
 
-        return save_diagram_2d(self.parsed, output_path=output_path, size=size)
+        return save_diagram_2d(
+            self.parsed,
+            output_path=output_path,
+            size=size,
+            geometry_override=geometry_override,
+        )
 
-    def build_3d(self, distance: float = 2.0):
+    def build_3d(self, distance: float = 2.0, geometry: str | None = None):
         """Return an RDKit ``Mol`` with a 3D conformer for this complex."""
         from .viz.molecule3D import build_complex_3d
 
-        return build_complex_3d(self.parsed, distance=distance)
+        return build_complex_3d(self.parsed, distance=distance, geometry=geometry)
 
-    def draw_3d(self, width: int = 400, height: int = 400, distance: float = 2.0):
+    def draw_3d(
+        self,
+        width: int = 400,
+        height: int = 400,
+        distance: float = 2.0,
+        geometry: str | None = None,
+    ):
         """Return a ``py3Dmol.view`` displaying the 3D structure of the complex."""
         from .viz.molecule3D import view_complex_3d
 
         return view_complex_3d(
-            self.parsed, width=width, height=height, distance=distance,
+            self.parsed,
+            width=width,
+            height=height,
+            distance=distance,
+            geometry=geometry,
         )
 
     def draw_3d_html(
-        self, width: int = 400, height: int = 400, distance: float = 2.0,
+        self,
+        width: int = 400,
+        height: int = 400,
+        distance: float = 2.0,
+        geometry: str | None = None,
     ) -> str:
         """Return self-contained HTML for embedding the 3D view (e.g. in Streamlit)."""
         from .viz.molecule3D import complex_3d_html
 
         return complex_3d_html(
-            self.parsed, width=width, height=height, distance=distance,
+            self.parsed,
+            width=width,
+            height=height,
+            distance=distance,
+            geometry=geometry,
         )
 
 
