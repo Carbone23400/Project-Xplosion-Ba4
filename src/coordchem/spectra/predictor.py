@@ -341,6 +341,7 @@ def predict_spectrum(
             geometry = report["geometry"]
     except Exception:
         geometry = None   # if geometry fails, selection rules are skipped
+    selection_geometry = geometry_for_selection_rules(parsed, geometry)
 
     for ligand_formula, ligand_count in parsed.ligands.items():
 
@@ -352,6 +353,11 @@ def predict_spectrum(
 
         # exclude bridging bands so they dont show on the spectra
         bands = [b for b in bands if b.coordination not in ("bridging", "free")]
+        bands = filter_ambidentate_bands(
+            ligand_formula,
+            parsed.donor_atoms.get(ligand_formula),
+            bands,
+        )
 
         if not bands:
             warnings.append(
@@ -378,7 +384,7 @@ def predict_spectrum(
                     corrected, ligand_formula
                 )
                 corrected = apply_selection_rules(
-                    corrected, geometry, spectrum_type
+                    corrected, selection_geometry, spectrum_type
                 )
 
             if not corrected.active:
@@ -538,6 +544,73 @@ def apply_selection_rules(
             )
 
     return band   # not in table — keep active
+
+
+def geometry_for_selection_rules(
+    parsed: ParsedComplex,
+    geometry: Optional[str],
+) -> Optional[str]:
+    """
+    Return a geometry only when simple high-symmetry selection rules are safe.
+
+    The current rules assume ideal point groups:
+    - octahedral A6 -> approx. Oh
+    - square planar A4 -> approx. D4h
+    - tetrahedral A4 -> approx. Td
+
+    Mixed-ligand complexes, chelates, and ambiguous/lower-symmetry cases keep
+    all bands active because forbidden modes can become allowed.
+    """
+    if geometry is None:
+        return None
+
+    normalized = geometry.lower().strip()
+    if normalized == "octahedral" and _has_identical_monodentate_ligands(parsed, 6):
+        return "octahedral"
+    if normalized == "square planar" and _has_identical_monodentate_ligands(parsed, 4):
+        return "square planar"
+    if normalized == "tetrahedral" and _has_identical_monodentate_ligands(parsed, 4):
+        return "tetrahedral"
+    return None
+
+
+def _has_identical_monodentate_ligands(
+    parsed: ParsedComplex,
+    expected_count: int,
+) -> bool:
+    """Return True for simple A4/A6 monodentate ligand shells."""
+    if len(parsed.ligands) != 1:
+        return False
+
+    ligand, count = next(iter(parsed.ligands.items()))
+    denticity = parsed.ligand_denticity.get(ligand, 1)
+    return (
+        count == expected_count
+        and denticity == 1
+        and parsed.coordination_number == expected_count
+    )
+
+
+def filter_ambidentate_bands(
+    ligand_formula: str,
+    donor_info: Optional[str],
+    bands: list[BandRecord],
+) -> list[BandRecord]:
+    """Keep donor-specific bands consistent with the selected ambidentate donor."""
+    if ligand_formula.lower() != "dmso" or donor_info is None:
+        return bands
+
+    donor = str(donor_info).strip()
+    if donor not in {"S", "O"}:
+        return bands
+
+    selected_marker = f"({donor}-bond)"
+    other_markers = {"(S-bond)", "(O-bond)"} - {selected_marker}
+
+    return [
+        band for band in bands
+        if not any(marker in band.assignment for marker in other_markers)
+    ]
 
 
 # ---------------------------------------------------------------------------

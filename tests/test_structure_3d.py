@@ -16,6 +16,7 @@ from rdkit import Chem  # noqa: E402
 from coordchem.complex import Complex  # noqa: E402
 from coordchem.parser import parse_formula  # noqa: E402
 from coordchem.viz.molecule3D import (  # noqa: E402
+    bidentate_site_pair_indices,
     build_complex_3d,
     build_ligand_3d,
     find_donor_atom,
@@ -51,6 +52,14 @@ class TestGeometryPositions:
 
         assert len(pos) == 8
         assert all(any(abs(component) > 0 for component in site) for site in pos)
+
+    def test_short_bidentate_square_planar_pairs_are_cis(self):
+        pairs = bidentate_site_pair_indices("square planar", 4)
+        assert pairs == [(0, 2), (1, 3)]
+
+    def test_short_bidentate_pentagonal_bipyramidal_pairs_are_equatorial(self):
+        pairs = bidentate_site_pair_indices("pentagonal bipyramidal", 7)
+        assert pairs[:2] == [(3, 4), (5, 6)]
 
 
 class TestBuildLigand:

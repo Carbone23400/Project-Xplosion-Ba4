@@ -240,6 +240,16 @@ class TestChloride:
         pt_bands = [b for b in bands if b.metal == "Pt"]
         assert any(310 <= b.center <= 370 for b in pt_bands)
 
+    def test_metal_specific_cl_replaces_generic_m_cl(self, db):
+        bands = db.get_bands("Cl", spectrum_type="IR", metal="Ni")
+        assignments = [
+            b.assignment for b in bands
+            if b.coordination == "terminal"
+        ]
+
+        assert any(a.startswith("Ni") and "Cl stretch" in a for a in assignments)
+        assert not any(a.startswith("M") and "Cl stretch" in a for a in assignments)
+
     def test_raman_mcl_present(self, db):
         bands = db.get_bands("Cl", spectrum_type="Raman")
         assert len(bands) > 0

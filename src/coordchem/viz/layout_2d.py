@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from math import cos, pi, sin
 
 from ..parser import ParsedComplex
+from .ligand_data import is_short_bidentate_ligand
 
 
 @dataclass(frozen=True)
@@ -75,6 +76,24 @@ def _square_antiprismatic_sites(n_sites: int) -> list[Site]:
     ][:n_sites]
 
 
+def _pentagonal_bipyramidal_sites(n_sites: int) -> list[Site]:
+    """Return a styled pentagonal-bipyramidal projection for CN=7."""
+    return [
+        Site(0.0, 4.2, "plain"),
+        Site(0.0, -4.2, "plain"),
+        _polar_site(0, 3.35, "plain"),
+        _polar_site(72, 2.75, "dash"),
+        _polar_site(144, 3.35, "dash"),
+        _polar_site(216, 3.35, "wedge"),
+        _polar_site(288, 2.75, "wedge"),
+    ][:n_sites]
+
+
+def _capped_octahedral_sites(n_sites: int) -> list[Site]:
+    """Return a flat heptagonal projection for capped-octahedral CN=7."""
+    return regular_polygon_sites(n_sites, radius=2.9)
+
+
 def coordination_sites(geometry: str, n_sites: int) -> list[Site]:
     """Return idealized 2D positions plus bond style cues."""
     g = geometry.lower().strip()
@@ -121,6 +140,12 @@ def coordination_sites(geometry: str, n_sites: int) -> list[Site]:
             Site(2.6, 1.8, "dash"),
             Site(2.6, -1.8, "wedge"),
         ][:n_sites]
+
+    if "pentagonal bipyramidal" in g:
+        return _pentagonal_bipyramidal_sites(n_sites)
+
+    if "capped octahedral" in g:
+        return _capped_octahedral_sites(n_sites)
 
     if "square antiprismatic" in g:
         return _square_antiprismatic_sites(n_sites)
@@ -239,6 +264,20 @@ def mixed_polydentate_site_groups(
         and any(denticity == 2 for denticity in denticities)
     ):
         sites = chelate_octahedral_sites(3)
+    elif (
+        "pentagonal bipyramidal" in normalized_geometry
+        and n_sites == 7
+        and all(denticity in {1, 2} for denticity in denticities)
+        and any(denticity == 2 for denticity in denticities)
+    ):
+        return pentagonal_bipyramidal_mixed_site_groups(ligand_items, denticities)
+    elif (
+        "capped octahedral" in normalized_geometry
+        and n_sites == 7
+        and all(denticity in {1, 2} for denticity in denticities)
+        and any(denticity == 2 for denticity in denticities)
+    ):
+        return capped_octahedral_mixed_site_groups(ligand_items, denticities)
     else:
         sites = coordination_sites(geometry, n_sites)
 
@@ -259,6 +298,86 @@ def mixed_polydentate_site_groups(
         denticity = denticities[index]
         groups[index] = tuple(sites[site_cursor: site_cursor + denticity])
         site_cursor += denticity
+
+    return [group for group in groups if group is not None]
+
+
+def pentagonal_bipyramidal_mixed_site_groups(
+    ligand_items: list[str],
+    denticities: list[int],
+) -> list[tuple[Site, ...]]:
+    """Assign CN=7 bidentates to compact styled site pairs."""
+    sites = coordination_sites("pentagonal bipyramidal", 7)
+    compact_pairs = [
+        (Site(1.15, 2.1, "dash"), Site(-1.15, 2.1, "dash")),
+        (Site(-1.15, -2.1, "wedge"), Site(1.15, -2.1, "wedge")),
+        (Site(3.0, 0.6, "plain"), Site(1.55, 1.95, "dash")),
+    ]
+    compact_pair_site_indices = [(3, 4), (5, 6), (2, 3)]
+    monodentate_sites = [0, 1, 2, 3, 4, 5, 6]
+    used: set[int] = set()
+    groups: list[tuple[Site, ...] | None] = [None] * len(ligand_items)
+    pair_cursor = 0
+
+    for index, (ligand, denticity) in enumerate(zip(ligand_items, denticities)):
+        if not is_short_bidentate_ligand(ligand, denticity):
+            continue
+
+        if pair_cursor < len(compact_pairs):
+            groups[index] = compact_pairs[pair_cursor]
+            used.update(compact_pair_site_indices[pair_cursor])
+            pair_cursor += 1
+
+    for index, denticity in enumerate(denticities):
+        if groups[index] is not None:
+            continue
+
+        available = [
+            site_index for site_index in monodentate_sites
+            if site_index not in used
+        ]
+        chosen = available[:denticity]
+        used.update(chosen)
+        groups[index] = tuple(sites[site_index] for site_index in chosen)
+
+    return [group for group in groups if group is not None]
+
+
+def capped_octahedral_mixed_site_groups(
+    ligand_items: list[str],
+    denticities: list[int],
+) -> list[tuple[Site, ...]]:
+    """Assign capped-octahedral bidentates to compact cis-like site pairs."""
+    sites = coordination_sites("capped octahedral", 7)
+    compact_pairs = [(1, 2), (4, 5), (6, 0)]
+    monodentate_sites = [0, 1, 2, 3, 4, 5, 6]
+    used: set[int] = set()
+    groups: list[tuple[Site, ...] | None] = [None] * len(ligand_items)
+    pair_cursor = 0
+
+    for index, (ligand, denticity) in enumerate(zip(ligand_items, denticities)):
+        if not is_short_bidentate_ligand(ligand, denticity):
+            continue
+
+        while pair_cursor < len(compact_pairs):
+            pair = compact_pairs[pair_cursor]
+            pair_cursor += 1
+            if not any(site_index in used for site_index in pair):
+                used.update(pair)
+                groups[index] = tuple(sites[site_index] for site_index in pair)
+                break
+
+    for index, denticity in enumerate(denticities):
+        if groups[index] is not None:
+            continue
+
+        available = [
+            site_index for site_index in monodentate_sites
+            if site_index not in used
+        ]
+        chosen = available[:denticity]
+        used.update(chosen)
+        groups[index] = tuple(sites[site_index] for site_index in chosen)
 
     return [group for group in groups if group is not None]
 

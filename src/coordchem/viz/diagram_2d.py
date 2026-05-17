@@ -470,8 +470,6 @@ def _geometry_options(geometry: str) -> list[str]:
     options: list[str] = []
     for option in geometry.split(" or "):
         clean = option.strip()
-        if clean == "distorted square planar":
-            clean = "square planar"
         if clean not in options:
             options.append(clean)
 

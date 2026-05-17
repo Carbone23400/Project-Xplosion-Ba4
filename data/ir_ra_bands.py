@@ -26,6 +26,7 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Optional
 import os
+import re
 
 
 # ---------------------------------------------------------------------------
@@ -615,13 +616,31 @@ class IRBandDB:
             specific   = [r for r in rows if r["metal"] == metal]
             generic    = [r for r in rows if r["metal"] == "any"]
 
-            # Keep only generic rows whose assignment isn't already covered
-            covered    = {r["assignment"] for r in specific}
-            supplement = [r for r in generic if r["assignment"] not in covered]
+            # Keep only generic rows whose band family is not already covered
+            # by a metal-specific row. For example, Ni-Cl stretch should
+            # replace the generic M-Cl stretch in the app, not duplicate it.
+            covered = {
+                self._band_family_key(r, metal)
+                for r in specific
+            }
+            supplement = [
+                r for r in generic
+                if self._band_family_key(r, metal) not in covered
+            ]
 
             rows = specific + supplement
 
         return [self._row_to_record(r) for r in rows]
+
+    @staticmethod
+    def _band_family_key(row: sqlite3.Row, metal: str) -> tuple[str, str]:
+        """Return a normalized key for matching specific and generic bands."""
+        assignment = row["assignment"]
+        assignment = assignment.replace(f"{metal}-", "M-")
+        assignment = assignment.replace(f"{metal}–", "M–")
+        assignment = re.sub(r"\([^)]*\)", "", assignment)
+        assignment = re.sub(r"\s+", " ", assignment).strip()
+        return row["coordination"], assignment
 
     def get_all_ligands(self) -> list[str]:
         """Return all ligand symbols present in the database."""
