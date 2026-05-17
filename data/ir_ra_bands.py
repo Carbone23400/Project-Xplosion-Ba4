@@ -270,6 +270,56 @@ SEED_BANDS = [
     ("I",   "terminal", "any", "Raman", 100,  200, "strong",      "M–I stretch",          False, True,  "Nakamoto Vol.2 p.105"),
 
     # =========================================================================
+    # FLUORIDE  F⁻   (Nakamoto Vol.2 pp. 106–115)
+    # M-F stretch is the dominant diagnostic band.
+    # Higher wavenumber than other halides due to the small F atom.
+    # =========================================================================
+    ("F",  "terminal", "any", "IR",    450,  700, "strong",      "M–F stretch",                 True,  False, "Nakamoto Vol.2 p.107"),
+    ("F",  "terminal", "any", "Raman", 450,  700, "strong",      "M–F stretch",                 False, True,  "Nakamoto Vol.2 p.107"),
+    ("F",  "terminal", "Cr",  "IR",    590,  640, "strong",      "Cr–F stretch",                True,  False, "Nakamoto Vol.2 p.109"),
+    ("F",  "terminal", "Fe",  "IR",    540,  600, "strong",      "Fe–F stretch",                True,  False, "Nakamoto Vol.2 p.110"),
+    ("F",  "terminal", "Co",  "IR",    510,  560, "strong",      "Co–F stretch",                True,  False, "Nakamoto Vol.2 p.110"),
+    ("F",  "terminal", "Ni",  "IR",    480,  530, "strong",      "Ni–F stretch",                True,  False, "Nakamoto Vol.2 p.111"),
+    ("F",  "terminal", "Pt",  "IR",    530,  580, "strong",      "Pt–F stretch",                True,  False, "Nakamoto Vol.2 p.112"),
+
+    # =========================================================================
+    # OXIDO  O²⁻   (Nakamoto Vol.2 pp. 116–125)
+    # Terminal oxo ligand — very strong M=O double bond stretch.
+    # Highly diagnostic: position depends strongly on metal and
+    # oxidation state. High oxidation state metals give higher frequency.
+    # =========================================================================
+    ("O",  "terminal", "any", "IR",    800, 1050, "very strong", "M=O stretch",                 True,  False, "Nakamoto Vol.2 p.117"),
+    ("O",  "terminal", "any", "Raman", 800, 1050, "strong",      "M=O stretch",                 False, True,  "Nakamoto Vol.2 p.117"),
+    # Metal specific M=O stretches  
+    ("O",  "terminal", "V",   "IR",    960, 1010, "very strong", "V=O stretch",                 True,  False, "Nakamoto Vol.2 p.119"),
+    ("O",  "terminal", "Mo",  "IR",    890,  960, "very strong", "Mo=O stretch",                True,  False, "Nakamoto Vol.2 p.120"),
+    ("O",  "terminal", "W",   "IR",    870,  950, "very strong", "W=O stretch",                 True,  False, "Nakamoto Vol.2 p.120"),
+    ("O",  "terminal", "Re",  "IR",    950, 1000, "very strong", "Re=O stretch",                True,  False, "Nakamoto Vol.2 p.121"),
+    ("O",  "terminal", "Cr",  "IR",    840,  900, "very strong", "Cr=O stretch",                True,  False, "Nakamoto Vol.2 p.119"),
+    ("O",  "terminal", "Mn",  "IR",    820,  880, "very strong", "Mn=O stretch",                True,  False, "Nakamoto Vol.2 p.120"),
+    ("O",  "terminal", "Ru",  "IR",    800,  860, "very strong", "Ru=O stretch",                True,  False, "Nakamoto Vol.2 p.122"),
+    ("O",  "terminal", "Os",  "IR",    820,  870, "very strong", "Os=O stretch",                True,  False, "Nakamoto Vol.2 p.122"),
+    # Raman metal specific
+    ("O",  "terminal", "V",   "Raman", 960, 1010, "very strong", "V=O stretch",                 False, True,  "Nakamoto Vol.2 p.119"),
+    ("O",  "terminal", "Mo",  "Raman", 890,  960, "very strong", "Mo=O stretch",                False, True,  "Nakamoto Vol.2 p.120"),
+    ("O",  "terminal", "W",   "Raman", 870,  950, "strong",      "W=O stretch",                 False, True,  "Nakamoto Vol.2 p.120"),
+
+    # =========================================================================
+    # SULFIDO  S²⁻   (Nakamoto Vol.2 pp. 126–135)
+    # Terminal sulfido ligand — M=S stretch at lower frequency than M=O
+    # due to the larger, heavier S atom. Strong in Raman, weaker in IR.
+    # =========================================================================
+    ("S",  "terminal", "any", "IR",    400,  580, "medium",      "M=S stretch",                 True,  False, "Nakamoto Vol.2 p.127"),
+    ("S",  "terminal", "any", "Raman", 400,  580, "very strong", "M=S stretch",                 False, True,  "Nakamoto Vol.2 p.127"),
+    # Metal specific
+    ("S",  "terminal", "Mo",  "IR",    480,  520, "medium",      "Mo=S stretch",                True,  False, "Nakamoto Vol.2 p.129"),
+    ("S",  "terminal", "Mo",  "Raman", 480,  520, "very strong", "Mo=S stretch",                False, True,  "Nakamoto Vol.2 p.129"),
+    ("S",  "terminal", "W",   "IR",    460,  510, "medium",      "W=S stretch",                 True,  False, "Nakamoto Vol.2 p.130"),
+    ("S",  "terminal", "W",   "Raman", 460,  510, "very strong", "W=S stretch",                 False, True,  "Nakamoto Vol.2 p.130"),
+    ("S",  "terminal", "Re",  "IR",    490,  530, "medium",      "Re=S stretch",                True,  False, "Nakamoto Vol.2 p.131"),
+    ("S",  "terminal", "V",   "IR",    540,  570, "medium",      "V=S stretch",                 True,  False, "Nakamoto Vol.2 p.131"),
+        
+    # =========================================================================
     # HYDROXIDE  OH⁻
     # =========================================================================
     ("OH",  "terminal", "any", "IR",   3550, 3700, "strong",      "O–H stretch",          True,  False, "Nakamoto Vol.2 p.45"),
