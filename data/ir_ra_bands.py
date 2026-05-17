@@ -119,6 +119,32 @@ SEED_BANDS = [
     ("CO", "terminal", "Cr", "Raman",  2119, 2119, "strong",      "C≡O stretch (A₁g)",   False, True,  "Nakamoto Vol.2 p.135"),
 
     # =========================================================================
+    # ISOCYANIDO  NC⁻  (Nakamoto Vol.2 pp. 173–185)
+    # N-bonded cyanide — metal coordinates through nitrogen instead of carbon.
+    # =========================================================================
+    # Free isocyanide
+    ("NC", "free",     "any", "IR",   2080, 2080, "strong",      "C≡N stretch (free)",          True,  False, "Nakamoto Vol.2 p.173"),
+    ("NC", "free",     "any", "Raman",2080, 2080, "strong",      "C≡N stretch (free)",          False, True,  "Nakamoto Vol.2 p.173"),
+
+    # Terminal M-NC (N-bonded): higher than free and higher than M-CN
+    ("NC", "terminal", "any", "IR",   2150, 2300, "very strong", "C≡N stretch",                 True,  False, "Nakamoto Vol.2 p.175"),
+    ("NC", "terminal", "any", "Raman",2150, 2300, "strong",      "C≡N stretch",                 False, True,  "Nakamoto Vol.2 p.175"),
+    # M-N stretch — lower than M-C in cyanide
+    ("NC", "terminal", "any", "IR",    300,  400, "medium",      "M–N stretch",                 True,  False, "Nakamoto Vol.2 p.177"),
+    ("NC", "terminal", "any", "Raman", 300,  400, "strong",      "M–N stretch",                 False, True,  "Nakamoto Vol.2 p.177"),
+    # M-N-C bend
+    ("NC", "terminal", "any", "IR",    300,  430, "weak",        "M–N≡C bend",                  True,  False, "Nakamoto Vol.2 p.178"),
+
+    # Metal specific
+    ("NC", "terminal", "Fe",  "IR",   2180, 2220, "very strong", "C≡N stretch (Fe, N-bond)",    True,  False, "Nakamoto Vol.2 p.179"),
+    ("NC", "terminal", "Co",  "IR",   2160, 2200, "very strong", "C≡N stretch (Co, N-bond)",    True,  False, "Nakamoto Vol.2 p.180"),
+    ("NC", "terminal", "Pt",  "IR",   2200, 2250, "very strong", "C≡N stretch (Pt, N-bond)",    True,  False, "Nakamoto Vol.2 p.181"),
+
+    # Raman metal specific
+    ("NC", "terminal", "Fe",  "Raman",2180, 2220, "strong",      "C≡N stretch (Fe, N-bond)",    False, True,  "Nakamoto Vol.2 p.179"),
+    ("NC", "terminal", "Co",  "Raman",2160, 2200, "strong",      "C≡N stretch (Co, N-bond)",    False, True,  "Nakamoto Vol.2 p.180"),
+    
+    # =========================================================================
     # AMMONIA  NH3   (Nakamoto Vol.2, pp. 49–68)
     # =========================================================================
     # Free NH3
@@ -318,7 +344,7 @@ SEED_BANDS = [
     ("S",  "terminal", "W",   "Raman", 460,  510, "very strong", "W=S stretch",                 False, True,  "Nakamoto Vol.2 p.130"),
     ("S",  "terminal", "Re",  "IR",    490,  530, "medium",      "Re=S stretch",                True,  False, "Nakamoto Vol.2 p.131"),
     ("S",  "terminal", "V",   "IR",    540,  570, "medium",      "V=S stretch",                 True,  False, "Nakamoto Vol.2 p.131"),
-        
+
     # =========================================================================
     # HYDROXIDE  OH⁻
     # =========================================================================
