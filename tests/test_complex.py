@@ -31,7 +31,7 @@ class TestComplexFromFormula:
         assert c.ligands == {"NH3": 4}
         assert c.oxidation_state == 2
         assert c.coordination_number == 4
-        assert c.geometry == "distorted square planar or tetrahedral"
+        assert c.geometry == "square planar or tetrahedral"
         assert c.d_count == 9
         assert c.complex_charge == 2
 

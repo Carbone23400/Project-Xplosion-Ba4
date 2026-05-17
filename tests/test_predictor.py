@@ -340,6 +340,26 @@ class TestBenchmarkComplexes:
         r = predict("[NiCl4]2-")
         assert r.ligand_coverage.get("Cl", 0) > 0
 
+    def test_dmso_oxygen_linkage_filters_s_bond_bands(self):
+        parsed = parse_formula("[Ni(dmso)6]2+")
+        parsed.donor_atoms["dmso"] = "O"
+
+        result = predict_spectrum(parsed, spectrum_type="IR")
+        assignments = [band.assignment for band in result.bands]
+
+        assert any("(O-bond)" in assignment for assignment in assignments)
+        assert not any("(S-bond)" in assignment for assignment in assignments)
+
+    def test_dmso_sulfur_linkage_filters_o_bond_bands(self):
+        parsed = parse_formula("[Ni(dmso)6]2+")
+        parsed.donor_atoms["dmso"] = "S"
+
+        result = predict_spectrum(parsed, spectrum_type="IR")
+        assignments = [band.assignment for band in result.bands]
+
+        assert any("(S-bond)" in assignment for assignment in assignments)
+        assert not any("(O-bond)" in assignment for assignment in assignments)
+
     def test_diamminesilver(self):
         r = predict("[Ag(NH3)2]+")
         assert r.ligand_coverage.get("NH3", 0) > 0

@@ -148,7 +148,7 @@ def _predict_cn4_geometry(
         return "tetrahedral or square planar"
 
     if oxidation_state == 2 and metal == "Cu":
-        return "distorted square planar or tetrahedral"
+        return "square planar or tetrahedral"
 
     if metal in {"Zn", "Cd", "Hg"}:
         return "tetrahedral"

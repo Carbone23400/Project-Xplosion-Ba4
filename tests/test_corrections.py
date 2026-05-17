@@ -18,6 +18,7 @@ from coordchem.spectra.predictor import (
     apply_backbonding_correction,
     apply_coordination_shift,
     apply_selection_rules,
+    geometry_for_selection_rules,
     CorrectedBand,
     BACKBONDING_SHIFTS,
     COORDINATION_SHIFTS,
@@ -385,8 +386,26 @@ class TestGeometryIntegration:
         parsed.geometry = "tetrahedral"
         result          = predict_spectrum(parsed, spectrum_type="IR",
                                            apply_corrections=True)
-        ml_stretch = [b for b in result.bands if "M–Cl stretch" in b.assignment]
+        ml_stretch = [b for b in result.bands if "Cl stretch" in b.assignment]
         assert len(ml_stretch) > 0
+
+    def test_selection_rules_apply_only_to_octahedral_a6(self):
+        parsed = parse_formula("[Fe(CN)6]4-")
+        assert geometry_for_selection_rules(parsed, "octahedral") == "octahedral"
+
+    def test_selection_rules_skip_mixed_octahedral_complexes(self):
+        parsed = parse_formula("[CoCl2(NH3)4]+")
+        parsed.geometry = "octahedral"
+
+        result = predict_spectrum(parsed, spectrum_type="IR", apply_corrections=True)
+
+        assert geometry_for_selection_rules(parsed, "octahedral") is None
+        assert result.bands_removed == 0
+
+    def test_selection_rules_skip_octahedral_chelates(self):
+        parsed = parse_formula("[Co(en)3]3+")
+
+        assert geometry_for_selection_rules(parsed, "octahedral") is None
 
     def test_no_geometry_does_not_crash(self):
         """

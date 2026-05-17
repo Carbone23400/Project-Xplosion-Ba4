@@ -77,6 +77,21 @@ LIGAND_DONOR_INDEX_OVERRIDES: dict[str, tuple[int, ...]] = {
 }
 
 
+SHORT_BIDENTATE_LIGANDS: set[str] = {
+    "en",
+    "ox",
+    "acac",
+    "bipy",
+    "bpy",
+    "phen",
+}
+
+
+def is_short_bidentate_ligand(ligand_symbol: str, denticity: int) -> bool:
+    """Return True for common chelating bidentates that should bind cis."""
+    return denticity == 2 and ligand_symbol in SHORT_BIDENTATE_LIGANDS
+
+
 def donor_index_overrides_for_ligand(
     ligand_symbol: str,
     donor_info: str | None = None,

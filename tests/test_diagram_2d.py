@@ -17,6 +17,8 @@ import pytest
 from coordchem.viz.diagram_2d import (
     H2_ANNOTATION_PROP,
     _drawing_variants,
+    _expand_ligands,
+    _site_groups_for_ligands,
     build_coordination_mol,
     diagram_2d_svg,
     save_diagram_2d,
@@ -783,6 +785,95 @@ def test_cn8_2d_handles_monodentate_bidentate_and_mixed_ligands(
     assert donor_symbols == expected_donor_symbols
     assert "<svg" in svg
     assert "coordchem-antiprism-frame" not in svg
+
+
+def test_cn7_short_bidentates_use_adjacent_equatorial_sites():
+    parsed = parse_formula("[Zr(ox)2Cl3]3-")
+    ligand_items = _expand_ligands(parsed)
+    groups = _site_groups_for_ligands(
+        parsed,
+        ligand_items,
+        "pentagonal bipyramidal",
+    )
+
+    ox_groups = [
+        group for ligand, group in zip(ligand_items, groups)
+        if ligand == "ox"
+    ]
+
+    pair_lengths = [
+        round(hypot(group[0].x - group[1].x, group[0].y - group[1].y), 2)
+        for group in ox_groups
+    ]
+
+    assert len(ox_groups) == 2
+    assert pair_lengths == [2.3, 2.3]
+
+
+def test_cn7_capped_octahedral_projection_is_flat():
+    mol = build_coordination_mol("[Mo(CN)7]4-", geometry_override="capped octahedral")
+    bond_dirs = [
+        str(bond.GetBondDir())
+        for bond in mol.GetBonds()
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}
+    ]
+
+    assert bond_dirs == ["NONE"] * 7
+
+
+def test_cn7_pentagonal_bipyramidal_projection_has_styled_depth_bonds():
+    mol = build_coordination_mol(
+        "[Mo(CN)7]4-",
+        geometry_override="pentagonal bipyramidal",
+    )
+    bond_dirs = []
+    for bond in mol.GetBonds():
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}:
+            bond_dirs.append(str(bond.GetBondDir()))
+
+    assert bond_dirs.count("NONE") == 3
+    assert bond_dirs.count("BEGINDASH") == 2
+    assert bond_dirs.count("BEGINWEDGE") == 2
+
+
+def test_cn7_capped_octahedral_short_bidentates_use_adjacent_equal_pairs():
+    parsed = parse_formula("[Zr(ox)2Cl3]3-")
+    ligand_items = _expand_ligands(parsed)
+    groups = _site_groups_for_ligands(
+        parsed,
+        ligand_items,
+        "capped octahedral",
+    )
+
+    ox_groups = [
+        group for ligand, group in zip(ligand_items, groups)
+        if ligand == "ox"
+    ]
+    pair_lengths = [
+        round(hypot(group[0].x - group[1].x, group[0].y - group[1].y), 2)
+        for group in ox_groups
+    ]
+
+    assert len(ox_groups) == 2
+    assert pair_lengths == [2.52, 2.52]
+
+
+def test_cn7_capped_octahedral_bidentates_avoid_vertical_label_sites():
+    parsed = parse_formula("[V(en)2Cl3]")
+    ligand_items = _expand_ligands(parsed)
+    groups = _site_groups_for_ligands(
+        parsed,
+        ligand_items,
+        "capped octahedral",
+    )
+
+    en_groups = [
+        group for ligand, group in zip(ligand_items, groups)
+        if ligand == "en"
+    ]
+
+    assert len(en_groups) == 2
+    assert all(abs(site.x) > 0.5 for group in en_groups for site in group)
 
 
 def test_bipy_projection_has_two_wedges_two_dashes_and_two_plain_bonds():

@@ -46,7 +46,7 @@ class TestBasicGeometry:
         assert geom("[NiCl4]2-") == "tetrahedral or square planar"
     
     def test_ambiguous_cu(self):
-        assert geom("[Cu(NH3)4]2+") == "distorted square planar or tetrahedral"
+        assert geom("[Cu(NH3)4]2+") == "square planar or tetrahedral"
 
 # ===========================================================================
 # 2. Geometry from ParsedComplex object
@@ -70,7 +70,7 @@ class TestParsedComplexInput:
 class TestCompoundNameInput:
 
     def test_geometry_from_full_name(self):
-        assert get_geometry("tetraamminecopper(II)") == "distorted square planar or tetrahedral"
+        assert get_geometry("tetraamminecopper(II)") == "square planar or tetrahedral"
 
     def test_d_count_from_full_name(self):
         assert get_d_count("diamminedichloroplatinum(II)") == 8
@@ -131,8 +131,8 @@ class TestCN4SpecialCases:
     def test_ni_ii_weak_field_ambiguous(self):
         assert geom("[NiCl4]2-") == "tetrahedral or square planar"
 
-    def test_cu_ii_distorted(self):
-        assert geom("[CuCl4]2-") == "distorted square planar or tetrahedral"
+    def test_cu_ii_square_planar_or_tetrahedral(self):
+        assert geom("[CuCl4]2-") == "square planar or tetrahedral"
 
     def test_zn_ii_tetrahedral(self):
         assert geom("[ZnCl4]2-") == "tetrahedral"
@@ -231,7 +231,7 @@ class TestBenchmarkComplexes:
         assert geom("[PtCl2(NH3)2]") == "square planar"
 
     def test_tetraamminecopper(self):
-        assert geom("[Cu(NH3)4]2+") == "distorted square planar or tetrahedral"
+        assert geom("[Cu(NH3)4]2+") == "square planar or tetrahedral"
 
     def test_tris_en_cobalt(self):
         assert geom("[Co(en)3]3+") == "octahedral"

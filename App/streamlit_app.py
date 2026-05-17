@@ -1,5 +1,6 @@
 import sys
 import os
+from dataclasses import dataclass
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "data"))
@@ -16,6 +17,14 @@ from coordchem.spectra.predictor import predict_spectrum
 from coordchem.spectra.renderer import plot_spectrum 
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+
+@dataclass(frozen=True)
+class GeometryChoice:
+    """User-facing geometry label paired with the renderer-compatible value."""
+    label: str
+    value: str
+
 
 def bands_to_df(result):
     """Convert a PredictionResult to a display DataFrame."""
@@ -96,26 +105,72 @@ def supported_ligands_text() -> str:
     return " ".join(KNOWN_LIGANDS)
 
 
-def geometry_choices(predicted_geometry: str) -> list[str]:
+def geometry_choices(predicted_geometry: str) -> list[GeometryChoice]:
     """Return drawable geometry choices from a possibly ambiguous prediction."""
     choices = [
-        normalized_geometry_choice(part.strip())
+        GeometryChoice(
+            label=part.strip(),
+            value=normalized_geometry_choice(part.strip()),
+        )
         for part in predicted_geometry.split(" or ")
         if part.strip()
     ]
-    return list(dict.fromkeys(choices)) or [normalized_geometry_choice(predicted_geometry)]
+    if not choices:
+        choices = [
+            GeometryChoice(
+                label=predicted_geometry,
+                value=normalized_geometry_choice(predicted_geometry),
+            )
+        ]
+    return list(dict.fromkeys(choices))
 
 
 def normalized_geometry_choice(geometry: str) -> str:
     """Normalize explanatory geometry labels to values used by renderers/rules."""
-    if geometry.lower().startswith("distorted square planar"):
-        return "square planar"
     return geometry
 
 
-def geometry_label(geometry: str) -> str:
+def geometry_label(geometry: str | GeometryChoice) -> str:
     """Human-readable label for geometry selection controls."""
+    if isinstance(geometry, GeometryChoice):
+        geometry = geometry.label
     return geometry[:1].upper() + geometry[1:]
+
+
+def dmso_donor_choices(parsed) -> list[str]:
+    """Return DMSO donor choices when HSAB leaves the binding mode ambiguous."""
+    donor_info = parsed.donor_atoms.get("dmso")
+    if donor_info is None:
+        return []
+
+    donors = [
+        donor.strip()
+        for donor in str(donor_info).split("/")
+        if donor.strip()
+    ]
+    return donors if len(donors) > 1 else []
+
+
+def dmso_donor_label(donor: str) -> str:
+    """Display label for DMSO linkage choices."""
+    labels = {
+        "S": "S-bound DMSO",
+        "O": "O-bound DMSO",
+    }
+    return labels.get(donor, donor)
+
+
+def dmso_assignment_note(parsed) -> str | None:
+    """Return a concise professional note for non-ambiguous DMSO assignments."""
+    if "dmso" not in parsed.ligands:
+        return None
+
+    donor = parsed.donor_atoms.get("dmso")
+    if donor == "O":
+        return "DMSO linkage: O-bound, estimated from HSAB metal hardness."
+    if donor == "S":
+        return "DMSO linkage: S-bound, estimated from HSAB metal softness."
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +213,7 @@ with st.sidebar:
 
     st.divider()
 
-    spectrum_type = st.radio("Spectrum type", ["IR", "Raman", "Both"], horizontal=True)
+    spectrum_type = st.radio("Spectrum type", ["IR", "Raman", "Both"], index=2, horizontal=True)
     sigma         = st.slider("Peak width σ (cm⁻¹)", min_value=5, max_value=60, value=20, step=5)
 
     st.divider()
@@ -185,26 +240,50 @@ except Exception as e:
     st.error(f"Could not resolve {label}: {e}")
     st.stop()
 
-for w in parsed.warnings:
-    st.warning(w)
-
 predicted_geometry = str(report["geometry"])
 available_geometries = geometry_choices(predicted_geometry)
-selected_geometry = available_geometries[0]
+selected_geometry_choice = available_geometries[0]
 
 if len(available_geometries) > 1:
     st.info(
         "Several conformations are plausible for this complex. "
         "Choose the one to use for the drawings and spectrum rules."
     )
-    selected_geometry = st.radio(
+    selected_geometry_choice = st.radio(
         "Conformation",
         available_geometries,
         format_func=geometry_label,
         horizontal=True,
     )
 
+selected_geometry = selected_geometry_choice.value
+selected_geometry_label = selected_geometry_choice.label
 parsed.geometry = selected_geometry
+
+available_dmso_donors = dmso_donor_choices(parsed)
+selected_dmso_donor = None
+
+if available_dmso_donors:
+    st.info(
+        "DMSO can bind through sulfur or oxygen for this metal. "
+        "Choose the linkage to use for the drawings and spectra."
+    )
+    selected_dmso_donor = st.radio(
+        "DMSO linkage",
+        available_dmso_donors,
+        format_func=dmso_donor_label,
+        horizontal=True,
+    )
+    parsed.donor_atoms["dmso"] = selected_dmso_donor
+
+for w in parsed.warnings:
+    if w.startswith("DMSO "):
+        continue
+    st.warning(w)
+
+dmso_note = dmso_assignment_note(parsed)
+if dmso_note and not available_dmso_donors:
+    st.info(dmso_note)
 
 # Complex identity
 st.subheader("Complex Identity")
@@ -219,8 +298,8 @@ c1.metric("Metal",           parsed.metal)
 c2.metric("Oxidation State", f"+{ox}" if ox and ox > 0 else str(ox))
 c3.metric("Coord. Number",   parsed.coordination_number)
 c4.metric("d-count",         report["d_count"] if report["d_count"] is not None else "—")
-c5.metric("Geometry",        geometry_label(selected_geometry))
-if selected_geometry != predicted_geometry:
+c5.metric("Geometry",        geometry_label(selected_geometry_label))
+if selected_geometry_label != predicted_geometry:
     st.caption(f"Predicted geometry: {predicted_geometry}")
 
 with st.expander("Ligand details", expanded=True):

@@ -9,6 +9,7 @@ from coordchem.viz.ligand_data import (
     LIGAND_DONOR_INDEX_OVERRIDES,
     LIGAND_SMILES,
     donor_index_overrides_for_ligand,
+    is_short_bidentate_ligand,
 )
 from coordchem.name import parse_name
 
@@ -144,6 +145,33 @@ def geometry_positions(
         return base[:n]
     return base + [(0.0, 0.0, 0.0)] * (n - len(base))
     #if n > o the number of ligand in the octahedral complex the 2 extra ligands fall in the center (0.0, 0.0, 0.0)
+
+
+def bidentate_site_pair_indices(
+    geometry: str | None,
+    n_sites: int,
+    *,
+    short_bidentate: bool = True,
+) -> list[tuple[int, int]]:
+    """Return chemically reasonable site pairs for bidentate ligands."""
+    if not short_bidentate:
+        return [(i, i + 1) for i in range(0, n_sites - 1, 2)]
+
+    normalized = (geometry or "").lower()
+
+    if "octahedral" in normalized and n_sites >= 6:
+        return [(0, 2), (1, 4), (3, 5)]
+
+    if "square planar" in normalized and n_sites >= 4:
+        return [(0, 2), (1, 3)]
+
+    if "pentagonal bipyramidal" in normalized and n_sites >= 7:
+        return [(3, 4), (5, 6), (2, 3), (6, 2)]
+
+    if "square antiprismatic" in normalized and n_sites >= 8:
+        return [(0, 1), (2, 3), (4, 5), (6, 7)]
+
+    return [(i, i + 1) for i in range(0, n_sites - 1, 2)]
 
 
 # ---------------------------------------------------------------------------
@@ -1206,11 +1234,15 @@ def build_complex_3d(
         return None
 
 
-    def next_free_pair():
-        if "octahedral" in geometry.lower() and len(sites) >= 6:
-            pairs = [(0, 2), (1, 4), (3, 5)]
-        else:
-            pairs = [(i, i + 1) for i in range(0, len(sites) - 1, 2)]
+    def next_free_pair(ligand_symbol: str, denticity: int):
+        pairs = bidentate_site_pair_indices(
+            geometry,
+            len(sites),
+            short_bidentate=is_short_bidentate_ligand(
+                ligand_symbol,
+                denticity,
+            ),
+        )
 
         for a, b in pairs:
             if not occupied[a] and not occupied[b]:
@@ -1275,19 +1307,8 @@ def build_complex_3d(
             #bidentate case
             if denticity == 2 and len(donor_overrides) >= 2:
                 bidentate_index = site_index // 2
-
-                if "octahedral" in geometry.lower() and len(sites) >= 6:
-                    site_pairs = octahedral_positions_bidentate(sites)
-                else:
-                    site_pairs = [
-                        (sites[i], sites[i + 1])
-                        for i in range(0, len(sites) - 1, 2)
-                    ]
-
-                if bidentate_index >= len(site_pairs):
-                    break
                 
-                pair=next_free_pair()
+                pair=next_free_pair(ligand_symbol, denticity)
                 if pair is None:
                     break
                 target_sites = (sites[pair[0]],sites[pair[1]])
