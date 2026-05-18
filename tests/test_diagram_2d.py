@@ -318,11 +318,11 @@ def test_en_donor_atoms_display_as_nh2_labels_without_separate_h_atoms():
 
     assert len(donor_atoms) == 6
     assert all(atom.GetAtomicNum() == 7 for atom in donor_atoms)
-    assert {atom.GetProp("atomLabel") for atom in donor_atoms} == {"NH2", "H2N"}
+    assert {atom.GetProp("atomLabel") for atom in donor_atoms} == {"N", "NH2", "H2N"}
     assert not h_atoms
 
 
-def test_en_svg_uses_direct_nh2_donor_labels():
+def test_en_vertical_donor_uses_n_label_with_h2_annotation():
     mol = build_coordination_mol("[Co(en)3]3+")
     svg = diagram_2d_svg("[Co(en)3]3+")
 
@@ -332,9 +332,10 @@ def test_en_svg_uses_direct_nh2_donor_labels():
         if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}
     ]
 
-    assert not any(atom.HasProp(H2_ANNOTATION_PROP) for atom in donor_atoms)
+    annotated_donors = [atom for atom in donor_atoms if atom.HasProp(H2_ANNOTATION_PROP)]
+    assert len(annotated_donors) == 2
+    assert {atom.GetProp("atomLabel") for atom in annotated_donors} == {"N"}
     assert "coordchem-h2-label" not in svg
-    assert ">H2</text>" not in svg
     assert "baseline-shift" not in svg
 
 
@@ -377,7 +378,7 @@ def test_mixed_octahedral_single_bidentate_reserves_first_chelate_pair():
     en_sites = {
         (x, y)
         for label, x, y, _ in sites
-        if label in {"NH2", "H2N"}
+        if label in {"N", "NH2", "H2N"}
     }
     ammine_sites = {
         (x, y)
@@ -502,7 +503,7 @@ def test_mixed_octahedral_two_different_bidentates_and_monodentates():
 
     assert _metal_bond_sites_by_label(mol) == [
         ("H2N", -3.0, 1.7, "BEGINDASH"),
-        ("NH2", 0.0, 3.5, "NONE"),
+        ("N", 0.0, 3.5, "NONE"),
         ("O", 3.0, 1.7, "BEGINDASH"),
         ("O", 3.0, -1.7, "BEGINWEDGE"),
         ("Cl", 0.0, -3.5, "NONE"),
@@ -515,7 +516,7 @@ def test_octahedral_three_different_bidentates_use_chelate_site_pairs():
 
     assert _metal_bond_sites_by_label(mol) == [
         ("H2N", -3.0, 1.7, "BEGINDASH"),
-        ("NH2", 0.0, 3.5, "NONE"),
+        ("N", 0.0, 3.5, "NONE"),
         ("O", 3.0, 1.7, "BEGINDASH"),
         ("O", 3.0, -1.7, "BEGINWEDGE"),
         ("O", 0.0, round(-3.5 * ACAC_COORDINATION_SCALE, 2), "NONE"),
@@ -728,6 +729,22 @@ def test_cn8_square_antiprismatic_projection_uses_staggered_styled_squares():
     }
 
     assert set(sites) == expected_top_square | expected_bottom_square
+
+
+def test_cn8_square_antiprismatic_keeps_compact_cyano_labels_carbon_side():
+    mol = build_coordination_mol("K4[Mo(CN)8]", geometry_override="square antiprismatic")
+
+    donor_symbols = [
+        mol.GetAtomWithIdx(bond.GetOtherAtomIdx(0)).GetSymbol()
+        for bond in mol.GetBonds()
+        if 0 in {bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()}
+    ]
+
+    sites = _metal_bond_sites_by_label(mol)
+
+    assert mol.GetNumAtoms() == 9
+    assert donor_symbols == ["C"] * 8
+    assert ("CN", -0.55, 1.65, "BEGINWEDGE") in sites
 
 
 def test_diagram_2d_svg_accepts_geometry_override():

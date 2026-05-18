@@ -178,6 +178,9 @@ def _monodentate_label(ligand_symbol: str, anchor: Site) -> str:
         ligand_symbol,
         (ligand_symbol, ligand_symbol),
     )
+    if ligand_symbol == "CN" and anchor.style == "wedge" and anchor.y > 0:
+        return donor_first
+
     return donor_last if anchor.x < 0 else donor_first
 
 
@@ -201,6 +204,21 @@ def _monodentate_label_atom(
     return atom
 
 
+def _should_use_compact_monodentate_label(
+    ligand_symbol: str,
+    denticity: int,
+    geometry: str,
+) -> bool:
+    """Return True when a monodentate ligand should be drawn as one label."""
+    if denticity != 1:
+        return False
+
+    if ligand_symbol not in ABBREVIATED_MONODENTATE_LIGANDS:
+        return False
+
+    return True
+
+
 def _polydentate_donor_label(
     ligand_symbol: str,
     atom_idx: int,
@@ -213,7 +231,24 @@ def _polydentate_donor_label(
         return None
 
     donor_first, donor_last = labels
+    if ligand_symbol == "en" and abs(anchor.x) < 1e-8:
+        return "N"
+
     return donor_last if anchor.x < 0 else donor_first
+
+
+def _needs_vertical_en_h2_annotation(
+    ligand_symbol: str,
+    local_idx: int,
+    donor_indices: tuple[int, ...],
+    donor_anchors: dict[int, Site],
+) -> bool:
+    """Return True when a vertical en donor label needs a separate H2 tag."""
+    return (
+        ligand_symbol == "en"
+        and local_idx in donor_indices
+        and abs(donor_anchors[local_idx].x) < 1e-8
+    )
 
 
 def _get_2d_coords(mol: Chem.Mol) -> dict[int, tuple[float, float]]:
@@ -320,9 +355,10 @@ def build_coordination_mol(
         denticity_from_parser = parsed.ligand_denticity.get(ligand_symbol, 1)
 
         # Compact labels for monodentate ligands
-        if (
-            denticity_from_parser == 1
-            and ligand_symbol in ABBREVIATED_MONODENTATE_LIGANDS
+        if _should_use_compact_monodentate_label(
+            ligand_symbol,
+            denticity_from_parser,
+            geometry,
         ):
             if len(anchors) != 1:
                 raise ValueError(
@@ -401,6 +437,13 @@ def build_coordination_mol(
                 new_atom.SetNoImplicit(True)
             if ligand_symbol == "ox":
                 new_atom.SetFormalCharge(0)
+            if _needs_vertical_en_h2_annotation(
+                ligand_symbol,
+                local_idx,
+                donor_indices,
+                donor_anchors,
+            ):
+                new_atom.SetProp(H2_ANNOTATION_PROP, "1")
 
             idx_map[local_idx] = rw.AddAtom(new_atom)
 
