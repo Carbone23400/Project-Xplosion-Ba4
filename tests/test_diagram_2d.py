@@ -88,6 +88,26 @@ def test_diagram_2d_svg_accepts_title():
 
     assert "<svg" in svg
     assert "</svg>" in svg
+    assert ">Hexacyanoferrate(II)<" in svg
+
+
+def test_diagram_2d_svg_prints_geometry_name_at_bottom():
+    svg = diagram_2d_svg(OCTAHEDRAL_COMPLEX)
+
+    assert "class='coordchem-geometry-label'" in svg
+    assert "octahedral" in svg
+
+
+def test_diagram_2d_svg_can_hide_title_and_geometry_labels():
+    svg = diagram_2d_svg(
+        OCTAHEDRAL_COMPLEX,
+        title="Hexacyanoferrate(II)",
+        display_labels=False,
+    )
+
+    assert ">Hexacyanoferrate(II)<" not in svg
+    assert "class='coordchem-geometry-label'" not in svg
+    assert "octahedral" not in svg
 
 
 def test_diagram_2d_svg_does_not_print_generated_coordination_name_by_default():
@@ -586,12 +606,13 @@ def test_edta_ligand_coordinates_are_horizontally_symmetric():
         assert round(top.y, 2) == round(-bottom.y, 2)
 
 
-def test_edta_svg_contains_interrupted_internal_bonds():
+def test_edta_svg_contains_correct_front_back_interruptions():
     svg = diagram_2d_svg("[Co(EDTA)]-")
 
     assert "stroke-dasharray:6,5" not in svg
     assert svg.count("class='bond-5 atom-6 atom-7'") == 2
-    assert svg.count("class='bond-16 atom-17 atom-18'") == 2
+    assert svg.count("class='bond-16 atom-17 atom-18'") == 1
+    assert svg.count("class='bond-23 atom-0 atom-16'") == 2
 
 
 def test_square_planar_cn4_projection_is_flat_cross():
@@ -678,14 +699,15 @@ def test_cn5_square_pyramidal_projection_has_right_depth_cues():
             pos = conf.GetAtomPosition(other)
             sites.append((str(bond.GetBondDir()), round(pos.x, 2), round(pos.y, 2)))
 
-    assert ("NONE", -3.2, 0.0) in sites
-    assert ("NONE", 0.0, 3.2) in sites
-    assert ("NONE", 0.0, -3.2) in sites
-    assert ("BEGINDASH", 2.6, 1.8) in sites
-    assert ("BEGINWEDGE", 2.6, -1.8) in sites
+    assert ("NONE", 0.0, 3.4) in sites
+    assert ("BEGINDASH", 2.94, 1.7) in sites
+    assert ("BEGINWEDGE", 2.94, -1.7) in sites
+    assert ("BEGINWEDGE", -2.94, -1.7) in sites
+    assert ("BEGINDASH", -2.94, 1.7) in sites
+    assert ("NONE", 0.0, -3.4) not in sites
 
 
-def test_cn5_trigonal_bipyramidal_projection_matches_octahedral_without_bottom():
+def test_cn5_trigonal_bipyramidal_projection_has_axial_and_equatorial_sites():
     mol = build_coordination_mol("[Fe(CO)5]", geometry_override="trigonal bipyramidal")
     conf = mol.GetConformer()
 
@@ -696,12 +718,11 @@ def test_cn5_trigonal_bipyramidal_projection_matches_octahedral_without_bottom()
             pos = conf.GetAtomPosition(other)
             sites.append((str(bond.GetBondDir()), round(pos.x, 2), round(pos.y, 2)))
 
-    assert ("NONE", 0.0, 3.4) in sites
-    assert ("BEGINDASH", 2.94, 1.7) in sites
-    assert ("BEGINWEDGE", 2.94, -1.7) in sites
-    assert ("BEGINWEDGE", -2.94, -1.7) in sites
-    assert ("BEGINDASH", -2.94, 1.7) in sites
-    assert ("NONE", 0.0, -3.4) not in sites
+    assert ("NONE", -3.2, 0.0) in sites
+    assert ("NONE", 0.0, 3.2) in sites
+    assert ("NONE", 0.0, -3.2) in sites
+    assert ("BEGINDASH", 2.6, 1.8) in sites
+    assert ("BEGINWEDGE", 2.6, -1.8) in sites
 
 
 def test_cn8_square_antiprismatic_projection_uses_staggered_styled_squares():
@@ -756,7 +777,7 @@ def test_diagram_2d_svg_accepts_geometry_override():
 
     assert "<svg" in svg
     assert "coordchem-antiprism-frame" not in svg
-    assert "square antiprismatic" not in svg
+    assert "square antiprismatic" in svg
     assert "coordchem-antiprism-frame-layer" not in svg
     assert "width='350.0'" not in svg
 
@@ -1100,3 +1121,4 @@ def test_ambiguous_dmso_svg_draws_s_and_o_bound_panels():
     assert "hexadimethylsulfoxidenickel(II)" not in svg
     assert "DMSO-S" not in svg
     assert "DMSO-O" not in svg
+    assert svg.count("octahedral") >= 2

@@ -258,6 +258,16 @@ class TestCounterIons:
         assert r.oxidation_state == 2
         assert r.iupac_name == "sodium tetrachloroplatinate(II)"
 
+    def test_zirconium_counter_ion_uses_zirconate_name(self):
+        r = parse("K4[Zr(ox)4]")
+
+        assert r.iupac_name == "potassium tetraoxalatozirconate(IV)"
+
+    def test_single_complex_ligand_has_no_numeric_prefix(self):
+        r = parse("[Fe(EDTA)]-")
+
+        assert r.iupac_name == "ethylenediaminetetraacetatoferrate(III)"
+
     def test_trailing_chloride_counter_ions(self):
         r = parse("[Fe(en)3]Cl3")
         assert r.counter_ions.get("Cl") == 3

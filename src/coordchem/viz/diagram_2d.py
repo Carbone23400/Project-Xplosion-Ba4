@@ -334,6 +334,21 @@ def _interrupted_gap_fraction(
     return 0.5
 
 
+def _edta_bottom_coordination_gap_fraction(
+    coords: dict[int, tuple[float, float]],
+) -> float:
+    """Return where the bottom Co-O bond passes behind the EDTA C-C bond."""
+    gap_shift_toward_oxygen = 0.08
+    _, donor_y = coords[15]
+    _, cc_y = coords[16]
+
+    if abs(donor_y) <= 1e-8:
+        return 0.5
+
+    fraction = cc_y / donor_y + gap_shift_toward_oxygen
+    return max(0.15, min(0.85, fraction))
+
+
 def build_coordination_mol(
     complex_input: str | ParsedComplex,
     geometry_override: str | None = None,
@@ -472,6 +487,13 @@ def build_coordination_mol(
                 bond.SetBondDir(Chem.BondDir.BEGINWEDGE)
             elif anchor.style == "dash":
                 bond.SetBondDir(Chem.BondDir.BEGINDASH)
+
+            if ligand_symbol in {"EDTA", "edta"} and donor_local_idx == 15:
+                bond.SetBoolProp("_coordchem_interrupted", True)
+                bond.SetDoubleProp(
+                    "_coordchem_gap_fraction",
+                    _edta_bottom_coordination_gap_fraction(transformed),
+                )
 
         for local_idx, global_idx in idx_map.items():
             global_coords[global_idx] = transformed[local_idx]
@@ -635,8 +657,13 @@ def _coordination_compound_name(parsed: ParsedComplex) -> str:
     return f"{''.join(ligand_parts)}{metal}({oxidation})"
 
 
-def _add_svg_labels(svg: str, size: int, title: str | None) -> str:
-    """Add white background and optional centered title."""
+def _add_svg_labels(
+    svg: str,
+    size: int,
+    title: str | None,
+    footer_labels: list[str] | None = None,
+) -> str:
+    """Add white background plus optional top title and bottom labels."""
     svg = svg.replace(
         "<!-- END OF HEADER -->",
         (
@@ -654,6 +681,22 @@ def _add_svg_labels(svg: str, size: int, title: str | None) -> str:
             f"{escape(title)}</text>\n"
         )
         svg = svg.replace("</svg>", f"{title_markup}</svg>", 1)
+
+    if footer_labels:
+        panel_width = size / len(footer_labels)
+        footer_markup = []
+        for idx, footer_label in enumerate(footer_labels):
+            x = panel_width * (idx + 0.5)
+            footer_markup.append(
+                (
+                    "<text class='coordchem-geometry-label' "
+                    f"x='{x:.1f}' y='{size - 18}' text-anchor='middle' "
+                    "font-family='Arial, Helvetica, sans-serif' font-size='18' "
+                    "font-weight='700' fill='#111111'>"
+                    f"{escape(footer_label)}</text>"
+                )
+            )
+        svg = svg.replace("</svg>", "\n".join(footer_markup) + "\n</svg>", 1)
 
     return svg
 
@@ -893,6 +936,7 @@ def diagram_2d_svg(
     *,
     title: str | None = None,
     geometry_override: str | None = None,
+    display_labels: bool = True,
 ) -> str:
     """Draw the coordination complex as SVG using RDKit."""
     if size <= 0:
@@ -925,6 +969,7 @@ def diagram_2d_svg(
         Chem.GetSymmSSSR(mol)
     variant_geometries = [variant_geometry for _, variant_geometry, _ in drawing_variants]
     legends = [""] * len(mols)
+    footer_labels = [legend for _, _, legend in drawing_variants]
 
     if len(mols) == 1:
         drawer = rdMolDraw2D.MolDraw2DSVG(size, size)
@@ -953,7 +998,10 @@ def diagram_2d_svg(
     drawer.FinishDrawing()
     svg = drawer.GetDrawingText()
     svg = _add_interrupted_bond_styles(svg, mols)
-    return _add_svg_labels(svg, size=size, title=None)
+    if not display_labels:
+        return _add_svg_labels(svg, size=size, title=None)
+
+    return _add_svg_labels(svg, size=size, title=title, footer_labels=footer_labels)
 
 
 def save_diagram_2d(
@@ -963,6 +1011,7 @@ def save_diagram_2d(
     *,
     title: str | None = None,
     geometry_override: str | None = None,
+    display_labels: bool = True,
 ) -> Path:
     """Save the SVG depiction to disk."""
     output = Path(output_path)
@@ -972,6 +1021,7 @@ def save_diagram_2d(
         size=size,
         title=title,
         geometry_override=geometry_override,
+        display_labels=display_labels,
     )
     output.write_text(svg, encoding="utf-8")
     return output

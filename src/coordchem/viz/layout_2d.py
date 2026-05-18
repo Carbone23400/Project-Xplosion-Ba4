@@ -125,20 +125,20 @@ def coordination_sites(geometry: str, n_sites: int) -> list[Site]:
 
     if "trigonal bipyramidal" in g:
         return [
-            _polar_site(90, 3.4, "plain"),
-            _polar_site(30, 3.4, "dash"),
-            _polar_site(-30, 3.4, "wedge"),
-            _polar_site(-150, 3.4, "wedge"),
-            _polar_site(150, 3.4, "dash"),
-        ][:n_sites]
-
-    if "square pyramidal" in g:
-        return [
             Site(0.0, -3.2, "plain"),
             Site(0.0, 3.2, "plain"),
             Site(-3.2, 0.0, "plain"),
             Site(2.6, 1.8, "dash"),
             Site(2.6, -1.8, "wedge"),
+        ][:n_sites]
+
+    if "square pyramidal" in g:
+        return [
+            _polar_site(90, 3.4, "plain"),
+            _polar_site(30, 3.4, "dash"),
+            _polar_site(-30, 3.4, "wedge"),
+            _polar_site(-150, 3.4, "wedge"),
+            _polar_site(150, 3.4, "dash"),
         ][:n_sites]
 
     if "pentagonal bipyramidal" in g:

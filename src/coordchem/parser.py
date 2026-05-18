@@ -573,6 +573,10 @@ def get_iupac_name(parsed) -> str:
         key=lambda x: parsed.ligand_names.get(x[0], x[0])
     ):
         name   = parsed.ligand_names.get(lig, lig)
+        if count == 1:
+            ligand_parts.append(name)
+            continue
+
         prefix = PREFIXES.get(count, str(count))
         # Use bis/tris/tetrakis for complex ligand names containing a number
         if any(p in name for p in ("di", "tri", "tetra", "bis", "tris")):
@@ -593,7 +597,7 @@ def get_iupac_name(parsed) -> str:
         "Ag": "argentate", "Zn": "zincate",  "Mo": "molybdate",
         "W":  "tungstate",  "Ru": "ruthenate","Os": "osmate",
         "Rh": "rhodate",    "Ir": "iridate",  "V":  "vanadate",
-        "Ti": "titanate",   "Cd": "cadmate",
+        "Ti": "titanate",   "Cd": "cadmate",   "Zr": "zirconate",
     }
 
     CATION_METAL_NAMES = {
@@ -603,7 +607,7 @@ def get_iupac_name(parsed) -> str:
         "Ag": "silver", "Zn": "zinc", "Mo": "molybdenum",
         "W": "tungsten", "Ru": "ruthenium", "Os": "osmium",
         "Rh": "rhodium", "Ir": "iridium", "V": "vanadium",
-        "Ti": "titanium", "Cd": "cadmium",
+        "Ti": "titanium", "Cd": "cadmium", "Zr": "zirconium",
     }
 
     ox = parsed.oxidation_state

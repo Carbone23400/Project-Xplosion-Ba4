@@ -150,6 +150,7 @@ class Complex:
             self.parsed,
             size=size,
             geometry_override=geometry_override,
+            display_labels=False,
         )
 
     def save_2d(
@@ -173,6 +174,7 @@ class Complex:
             output_path=output_path,
             size=size,
             geometry_override=geometry_override,
+            display_labels=False,
         )
 
     def build_3d(self, distance: float = 2.0, geometry: str | None = None):

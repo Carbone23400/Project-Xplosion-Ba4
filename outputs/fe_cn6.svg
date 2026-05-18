@@ -288,4 +288,6 @@ Q 258.3 302.6, 257.1 302.6
 Q 254.1 302.6, 252.5 300.8
 Q 250.9 299.0, 250.9 295.6
 ' fill='#000000'/>
+<text x='350.0' y='28' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-size='18' font-weight='700' fill='#111111'>Hexacyanoferrate(II)</text>
+<text class='coordchem-geometry-label' x='350.0' y='682' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-size='18' font-weight='700' fill='#111111'>octahedral</text>
 </svg>

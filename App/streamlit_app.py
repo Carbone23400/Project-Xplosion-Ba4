@@ -70,8 +70,8 @@ def render_2d_view(
         svg = diagram_2d_svg(
             complex_obj.parsed,
             size=size,
-            title="",
             geometry_override=geometry_override,
+            display_labels=False,
         )
     except Exception as exc:
         st.warning(f"Could not build a 2D drawing: {exc}")

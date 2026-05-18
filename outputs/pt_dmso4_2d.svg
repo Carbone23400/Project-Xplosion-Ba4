@@ -1,15 +1,11 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version='1.0' encoding='iso-8859-1'?>
 <svg version='1.1' baseProfile='full'
-     xmlns='http://www.w3.org/2000/svg'
-     xmlns:rdkit='http://www.rdkit.org/xml'
-     xmlns:xlink='http://www.w3.org/1999/xlink'
-     xml:space='preserve'
-     width='700px' height='842px' viewBox='0 0 700 842'>
-<rect width='700' height='842' fill='#FFFFFF'/>
-<text x='350.0' y='36' text-anchor='middle'
-      font-family='Arial, Helvetica, sans-serif' font-size='24'
-      font-weight='700' fill='#111111'>tetrakis(dimethylsulfoxide)platinum(II)</text>
-<g transform='translate(0,70)'>
+              xmlns='http://www.w3.org/2000/svg'
+                      xmlns:rdkit='http://www.rdkit.org/xml'
+                      xmlns:xlink='http://www.w3.org/1999/xlink'
+                  xml:space='preserve'
+width='700px' height='700px' viewBox='0 0 700 700'>
+<!-- END OF HEADER -->
 <rect width='700' height='700' fill='#FFFFFF'/>
 
 <rect style='opacity:1.0;fill:#FFFFFF;stroke:none' width='700.0' height='700.0' x='0.0' y='0.0'> </rect>
@@ -271,6 +267,6 @@ Q 393.7 449.8, 393.7 452.4
 Q 393.7 455.2, 394.8 456.6
 Q 395.9 457.9, 398.0 457.9
 ' fill='#000000'/>
-</g>
-<text x='350.0' y='814' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-size='21' font-weight='600' fill='#111111'>square planar</text>
+<text x='350.0' y='28' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-size='18' font-weight='700' fill='#111111'>tetradimethylsulfoxideplatinum(II)</text>
+<text class='coordchem-geometry-label' x='350.0' y='682' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-size='18' font-weight='700' fill='#111111'>square planar</text>
 </svg>

@@ -178,10 +178,8 @@ POLYDENTATE_DONOR_DISPLAY_LABELS: dict[str, dict[int, tuple[str, str]]] = {
 INTERRUPTED_LIGAND_BONDS: dict[str, set[tuple[int, int]]] = {
     "EDTA": {
         (5, 6),
-        (16, 17),
     },
     "edta": {
         (5, 6),
-        (16, 17),
     },
 }
