@@ -15,6 +15,7 @@ from coordchem.name import parse_name
 
 Position = Tuple[float, float, float]
 
+
 # ---------------------------------------------------------------------------
 # Geometry placeholders
 # ---------------------------------------------------------------------------
@@ -99,6 +100,103 @@ def trigonal_bipyramidal_positions(distance: float = 2.0) -> list[Position]:
         (0.0, 0.0, -distance),
     ]
 
+def square_antiprismatic_positions(distance: float = 2.0) -> list[Position]:
+    """Return eight positions for a square antiprismatic geometry."""
+    import math
+
+    z = distance * 0.55
+    r = (distance**2 - z**2) ** 0.5
+
+    bottom_square = []
+    top_square = []
+
+    for i in range(4):
+        angle = math.pi / 2 * i
+
+        bottom_square.append(
+            (
+                r * math.cos(angle),
+                r * math.sin(angle),
+                -z,
+            )
+        )
+
+    for i in range(4):
+        angle = math.pi / 4 + math.pi / 2 * i
+
+        top_square.append(
+            (
+                r * math.cos(angle),
+                r * math.sin(angle),
+                z,
+            )
+        )
+
+    return bottom_square + top_square
+
+
+def dodecahedral_positions(distance: float = 2.0) -> list[Position]:
+    """Return eight approximate positions for a dodecahedral CN=8 geometry."""
+    import math
+
+    z1 = distance * 0.75
+    z2 = distance * 0.25
+
+    r1 = (distance**2 - z1**2) ** 0.5
+    r2 = (distance**2 - z2**2) ** 0.5
+
+    return [
+        ( r1,  0.0,  z1),
+        ( 0.0,  r1,  z1),
+        (-r1,  0.0,  z1),
+        ( 0.0, -r1,  z1),
+
+        ( r2,  r2, -z2),
+        (-r2,  r2, -z2),
+        (-r2, -r2, -z2),
+        ( r2, -r2, -z2),
+    ]
+def pentagonal_bipyramidal_positions(distance: float = 2.0) -> list[Position]:
+    """Return seven positions: five equatorial + two axial."""
+    import math
+
+    equatorial = [
+        (
+            distance * math.cos(2 * math.pi * i / 5),
+            distance * math.sin(2 * math.pi * i / 5),
+            0.0,
+        )
+        for i in range(5)
+    ]
+
+    axial = [
+        (0.0, 0.0, distance),
+        (0.0, 0.0, -distance),
+    ]
+
+    return equatorial + axial
+
+def capped_octahedral_positions(distance: float = 2.0) -> list[Position]:
+    """Return seven positions for an approximate capped octahedral geometry."""
+    base = octahedral_positions(distance)
+
+    cap = (
+        distance / (3 ** 0.5),
+        distance / (3 ** 0.5),
+        distance / (3 ** 0.5),
+    )
+
+    return base + [cap]
+
+def square_pyramidal_positions(distance: float = 2.0) -> list[Position]:
+    """Return five positions for a square pyramidal geometry."""
+    return [
+        ( distance,  0.0, 0.0),
+        (-distance,  0.0, 0.0),
+        ( 0.0,  distance, 0.0),
+        ( 0.0, -distance, 0.0),
+        ( 0.0,  0.0, distance),
+    ]
 
 # Mapping from geometry label (as produced by ``coordchem.geometry``) to
 # the corresponding position generator. ``geometry_positions`` does a
@@ -112,7 +210,14 @@ _GEOMETRY_BUILDERS = {
     "square planar": square_planar_positions,
     "square antiprismatic": square_antiprismatic_positions,
     "trigonal bipyramidal": trigonal_bipyramidal_positions,
+    "square pyramidal": square_pyramidal_positions,
+    "pentagonal bipyramidal": pentagonal_bipyramidal_positions,
+    "capped octahedral": capped_octahedral_positions,   
     "octahedral": octahedral_positions,
+    "square antiprismatic": square_antiprismatic_positions,
+    "antiprismatic": square_antiprismatic_positions,
+    "dodecahedral":dodecahedral_positions,
+   
 }
 
 
@@ -219,7 +324,7 @@ def build_ligand_3d(smiles: str) -> Chem.Mol:
 
     return mol
 
-#voir si il faut enlever cette fonction
+#celui la je vais peut etre l'enlever
 def find_donor_atom2(
     mol: Chem.Mol,
     donor_symbol: str,
@@ -390,6 +495,95 @@ def translate_tridentate_ligand(ligand_mol, donor_indices, target_sites, reverse
 
         final_pos=vec_add(centered, target_mid)
         coords[idx]=final_pos
+
+    return coords
+
+def translate_tetradentate_ligand(ligand_mol, donor_indices, target_sites):
+    ligand_conf = ligand_mol.GetConformer()
+
+    donor_positions=[]
+    for idx in donor_indices:
+        pos=ligand_conf.GetAtomPosition(idx)
+        donor_positions.append((pos.x,pos.y,pos.z))
+
+    ligand_mid=(sum(pos[0] for pos in donor_positions)/4,
+                sum(pos[1] for pos in donor_positions)/4,
+                sum(pos[2] for pos in donor_positions)/4
+                    )
+    target_mid=(sum(pos[0] for pos in target_sites)/4,
+                sum(pos[1] for pos in target_sites)/4,
+                sum(pos[2] for pos in target_sites)/4
+                    )
+    
+    ligand_x=unit(vec_sub(donor_positions[1], donor_positions[0]))
+    ligand_tmp=unit(vec_sub(donor_positions[2], donor_positions[0]))
+    ligand_z=unit(cross(ligand_x, ligand_tmp))
+    ligand_y=unit(cross(ligand_z, ligand_x))
+
+
+    target_x = unit(vec_sub(target_sites[1], target_sites[0]))
+    target_tmp = unit(vec_sub(target_sites[2], target_sites[0]))
+    target_z = unit(cross(target_x, target_tmp))
+    target_y = unit(cross(target_z, target_x))
+
+    coords={}
+    for atom in ligand_mol.GetAtoms():
+        idx = atom.GetIdx()
+        old_pos = ligand_conf.GetAtomPosition(idx)
+        old_pos = (old_pos.x, old_pos.y, old_pos.z)
+
+        centered = vec_sub(old_pos, ligand_mid)
+
+        x = dot(centered, ligand_x)
+        y = dot(centered, ligand_y)
+        z = dot(centered, ligand_z)
+
+        final_pos = vec_add(
+            target_mid,
+            vec_add(
+                vec_add(vec_scale(target_x, x), vec_scale(target_y, y)),
+                vec_scale(target_z, z),
+            ),
+        )
+
+        coords[idx] = final_pos
+
+    return coords
+
+def translate_hexadentate_ligand(ligand_mol, donor_indices, target_sites):
+    ligand_conf = ligand_mol.GetConformer()
+
+    donor_positions = []
+    for idx in donor_indices:
+        pos = ligand_conf.GetAtomPosition(idx)
+        donor_positions.append((pos.x, pos.y, pos.z))
+
+    ligand_mid = (
+        sum(pos[0] for pos in donor_positions) / 6,
+        sum(pos[1] for pos in donor_positions) / 6,
+        sum(pos[2] for pos in donor_positions) / 6,
+    )
+
+    target_mid = (
+        sum(pos[0] for pos in target_sites) / 6,
+        sum(pos[1] for pos in target_sites) / 6,
+        sum(pos[2] for pos in target_sites) / 6,
+    )
+    donor_shift={}
+    for donor_idx, old_donor_pos, target_pos in zip(donor_indices, donor_positions,target_sites):
+        donor_shift[donor_idx]=vec_sub(target_pos,old_donor_pos)
+    coords = {}
+
+    for atom in ligand_mol.GetAtoms():
+        idx = atom.GetIdx()
+        old_pos = ligand_conf.GetAtomPosition(idx)
+        old_pos = (old_pos.x, old_pos.y, old_pos.z)
+        if idx in donor_shift:
+            coords[idx]=vec_add(old_pos,donor_shift[idx])
+        else:
+            centered = vec_sub(old_pos, ligand_mid)
+            final_pos = vec_add(centered, target_mid)
+            coords[idx] = final_pos
 
     return coords
 
@@ -1048,6 +1242,47 @@ def bipyridine_ligand_positions(ligand_mol, donor_indices, target_sites, ligand_
 
     return coords
 
+def water_ligand_positions(ligand_mol, donor_idx, target):
+    direction = unit(target)
+    coords = {}
+
+    coords[donor_idx] = target
+
+    if abs(direction[0]) < 0.9:
+        ref = (1.0, 0.0, 0.0)
+    else:
+        ref = (0.0, 1.0, 0.0)
+
+    side = unit(cross(direction, ref))
+
+    h_indices = [
+        atom.GetIdx()
+        for atom in ligand_mol.GetAtoms()
+        if atom.GetSymbol() == "H"
+    ]
+
+    angle = 0.55
+    oh_distance = 0.75
+    outward = vec_scale(direction, oh_distance)
+
+    if len(h_indices) >= 2:
+        coords[h_indices[0]] = vec_add(
+            target,
+            vec_add(outward, vec_scale(side, angle)),
+        )
+
+        coords[h_indices[1]] = vec_add(
+            target,
+            vec_add(outward, vec_scale(side, -angle)),
+        )
+
+    for atom in ligand_mol.GetAtoms():
+        idx = atom.GetIdx()
+        if idx not in coords:
+            coords[idx] = target
+
+    return coords
+
 def dmso_ligand_positions(ligand_mol, donor_idx, target, ligand_number=0):
     direction = unit(target)
 
@@ -1198,7 +1433,193 @@ def cyclopentadienyl_ligand_positions(ligand_mol,target,ligand_number=0):
 
     return coords
 
+def edta_ligand_positions(ligand_mol,donor_indices, target_sites):
+    ligand_conf=ligand_mol.GetConformer()
+    coords={}
+#place donors
+    for donor_idx, target in zip(donor_indices, target_sites):
+        coords[donor_idx]=target
+    donor_set=set(donor_indices)
+    n_donors = [
+    idx for idx in donor_indices
+    if ligand_mol.GetAtomWithIdx(idx).GetSymbol() == "N"
+]
 
+    if len(n_donors) >= 2:
+        n1_idx, n2_idx = n_donors[:2]
+        n1_pos = coords[n1_idx]
+        n2_pos = coords[n2_idx]
+
+        axis = unit(vec_sub(n2_pos, n1_pos))
+
+        if abs(axis[0]) < 0.9:
+            ref = (1.0, 0.0, 0.0)
+        else:
+            ref = (0.0, 1.0, 0.0)
+
+        side = unit(cross(axis, ref))
+    bridge_carbons = []
+
+    for bond in ligand_mol.GetBonds():
+            a = bond.GetBeginAtom()
+            b = bond.GetEndAtom()
+
+            if a.GetSymbol() != "C" or b.GetSymbol() != "C":
+                continue
+
+            a_neighbors = [n.GetIdx() for n in a.GetNeighbors()]
+            b_neighbors = [n.GetIdx() for n in b.GetNeighbors()]
+
+            a_connected_to_n = any(n in n_donors for n in a_neighbors)
+            b_connected_to_n = any(n in n_donors for n in b_neighbors)
+
+            if a_connected_to_n and b_connected_to_n:
+                bridge_carbons = [a.GetIdx(), b.GetIdx()]
+                break
+
+    if len(bridge_carbons) == 2:
+            c1_idx, c2_idx = bridge_carbons
+
+            coords[c1_idx] = vec_add(
+    n1_pos,
+    vec_add(
+        vec_scale(axis, 0.65),
+        vec_scale(side, 1.4),
+    ),
+)
+
+            coords[c2_idx] = vec_add(
+    n2_pos,
+    vec_add(
+        vec_scale(axis, -0.65),
+        vec_scale(side, 1.4),
+    ),
+)
+
+#place N-C 
+    for donor_idx in donor_indices:
+        donor_atom = ligand_mol.GetAtomWithIdx(donor_idx)
+
+        if donor_atom.GetSymbol() != "N":
+            continue
+
+        donor_pos = coords[donor_idx]
+        direction = unit(donor_pos)
+
+        if abs(direction[0]) < 0.9:
+            ref = (1.0, 0.0, 0.0)
+        else:
+            ref = (0.0, 1.0, 0.0)
+
+        side = unit(cross(direction, ref))
+
+        carbon_neighbors = [
+        n.GetIdx()
+        for n in donor_atom.GetNeighbors()
+        if n.GetSymbol() == "C"
+    ]
+        for i,c_idx in enumerate(carbon_neighbors):
+            if c_idx in coords:
+                continue
+            sign=1 if i%2==0 else -1
+            coords[c_idx]=vec_add(donor_pos,vec_add(vec_scale(direction,0.65),vec_scale(side,0.75*sign)))
+#place C-O           
+    for donor_idx in donor_indices:
+        donor_atom = ligand_mol.GetAtomWithIdx(donor_idx)
+
+        if donor_atom.GetSymbol() != "O":
+            continue
+
+        donor_pos = coords[donor_idx]
+        direction=unit(donor_pos)
+
+        if abs(direction[0]) < 0.9:
+            ref = (1.0, 0.0, 0.0)
+        else:
+            ref = (0.0, 1.0, 0.0)
+
+        side = unit(cross(direction, ref))
+
+        carbonyl_carbons = [
+        n.GetIdx()
+        for n in donor_atom.GetNeighbors()
+        if n.GetSymbol() == "C"
+    ]
+
+        if not carbonyl_carbons:
+            continue
+
+        c_idx = carbonyl_carbons[0]
+        c_pos = vec_add(donor_pos, vec_scale(direction, 0.55))
+        coords[c_idx] = c_pos
+
+        carbon_atom = ligand_mol.GetAtomWithIdx(c_idx)
+
+        other_oxygens = [
+        n.GetIdx()
+        for n in carbon_atom.GetNeighbors()
+        if n.GetSymbol() == "O" and n.GetIdx() != donor_idx
+    ]
+
+        for i, o_idx in enumerate(other_oxygens):
+            sign = 1 if i % 2 == 0 else -1
+            coords[o_idx] = vec_add(
+            c_pos,
+            vec_add(
+                vec_scale(direction, 0.35),
+                vec_scale(side, 0.25 * sign),
+            ),
+        )
+
+    donor_set= set(donor_indices)
+#place other heavy atoms
+    for atom in ligand_mol.GetAtoms():
+        idx = atom.GetIdx()
+        if idx in coords:
+            continue
+        if atom.GetSymbol()== "H":
+            continue
+        neighbors = [n.GetIdx() for n in atom.GetNeighbors()]
+        connected_donors = [n for n in neighbors if n in donor_set]
+
+        if connected_donors:
+            donor_idx = connected_donors[0]
+            donor_pos = coords[donor_idx]
+            outward = unit(donor_pos)
+
+            coords[idx] = vec_add(
+                donor_pos,
+                vec_scale(outward, 1.0),
+            )
+        else:
+            old_pos = ligand_conf.GetAtomPosition(idx)
+            old_pos = (old_pos.x, old_pos.y, old_pos.z)
+
+            outward = unit(old_pos)
+            coords[idx] = vec_scale(outward, max(norm(old_pos), 1.5))
+#place hydrogens
+    for atom in ligand_mol.GetAtoms():
+        if atom.GetSymbol() != "H":
+            continue
+        h_idx=atom.GetIdx()
+        neighbors = atom.GetNeighbors()
+        if len(neighbors)==0:
+            continue
+        neighbor_idx=neighbors[0].GetIdx()
+        if neighbor_idx not in coords:
+            old_pos = ligand_conf.GetAtomPosition(h_idx)
+            coords[h_idx] = (old_pos.x, old_pos.y, old_pos.z)
+            continue
+        base_pos=coords[neighbor_idx]
+        outward=unit(base_pos)
+
+        coords[h_idx] = vec_add(
+            base_pos,
+            vec_scale(outward, 0.75),
+            )
+
+    return coords
+   
 def build_complex_3d(
     parsed: ParsedComplex,
     distance: float = 2.0,
@@ -1267,7 +1688,38 @@ def build_complex_3d(
                 return a, b, c
 
         return None
+    def next_free_quadruplet():
+        if "octahedral" in geometry.lower() and len(sites)>=6:
+            quadruplets=[(0,1,2,3)]
+        else:
+            quadruplets=[(i, i + 1, i + 2, i + 3)
+            for i in range(0, len(sites) - 3, 4)]
+        for a, b, c, d in quadruplets:
+            if not occupied[a] and not occupied[b] and not occupied[c] and not occupied[d]:
+                occupied[a] = True
+                occupied[b] = True
+                occupied[c] = True
+                occupied[d] = True
+                return a, b, c, d
 
+        return None
+    def next_free_sextuplet():
+        if "octahedral" in geometry.lower() and len(sites)>=6:
+            sextuplets=[(0,1,2,3,4,5)]
+        else:
+            sextuplets=[(i, i + 1, i + 2, i + 3,i+4,i+5)
+            for i in range(0, len(sites) - 5, 6)]
+        for a, b, c, d,e,f in sextuplets:
+            if not occupied[a] and not occupied[b] and not occupied[c] and not occupied[d] and not occupied[e] and not occupied[f]:
+                occupied[a] = True
+                occupied[b] = True
+                occupied[c] = True
+                occupied[d] = True
+                occupied[e] = True
+                occupied[f] = True
+                return a, b, c, d, e, f
+
+        return None
     ligand_items = sorted(
     parsed.ligands.items(),
     key=lambda item: parsed.ligand_denticity.get(item[0], 1),
@@ -1355,7 +1807,6 @@ def build_complex_3d(
                     break       
                 target_sites = (sites[triplet[0]], sites[triplet[1]], sites[triplet[2]])
                 tridentate_index = 0
-#finir ca : mais on a supprimé le octahedral positions tridentate donc c'est normal ?
                 donor_indices = donor_overrides[:3]
                 if ligand_symbol in ("terpy"):
                     local_coords = terpyridine_ligand_positions(
@@ -1387,7 +1838,33 @@ def build_complex_3d(
 
                 site_index += 3
                 continue
+            #tetradentate case
+            elif denticity==4 and len(donor_overrides)>=4:
+                quadruplet=next_free_quadruplet()
+                if quadruplet is None:
+                    break       
+                target_sites = (sites[quadruplet[0]], sites[quadruplet[1]],sites[quadruplet[2]],sites[quadruplet[3]])
+                tridentate_index = 0
+                donor_indices=donor_overrides[:4]
 
+                local_coords=translate_tetradentate_ligand(ligand_mol,donor_indices,target_sites)
+                offset=rw.GetNumAtoms()
+                for atom in ligand_mol.GetAtoms():
+                    global_idx = rw.AddAtom(atom)
+                    coords[global_idx] = local_coords[atom.GetIdx()]
+
+                for bond in ligand_mol.GetBonds():
+                    a1 = bond.GetBeginAtomIdx() + offset
+                    a2 = bond.GetEndAtomIdx() + offset
+                    rw.AddBond(a1, a2, bond.GetBondType())
+
+                for donor_idx in donor_indices:
+                    rw.AddBond(metal_idx,donor_idx + offset,Chem.BondType.DATIVE)
+
+                site_index += 4
+                continue
+
+            #pentadentate case
             elif denticity==5:
                     site=next_free_site()
                     if site is None:
@@ -1432,6 +1909,48 @@ def build_complex_3d(
            # metal_idx, donor_idx_local + offset, Chem.BondType.DATIVE )
                # site_index+= 1
                # continue 
+            elif denticity==6 and len(donor_overrides)>=6:
+
+                if len(sites)<6:
+                    break
+                sextuplet = next_free_sextuplet()
+                if sextuplet is None:
+                    break
+
+                
+                donor_indices = donor_overrides[:6]
+                if ligand_symbol in ("EDTA", "edta"):
+                   target_sites = (
+    sites[0],  # N1
+    sites[2],  # O de N1
+    sites[4],  # O de N1
+
+    sites[1],  # N2
+    sites[3],  # O de N2
+    sites[5],  # O de N2
+)
+
+                   local_coords=edta_ligand_positions(ligand_mol,donor_indices, target_sites)
+                else:
+                    target_sites = (sites[sextuplet[0]],sites[sextuplet[1]],sites[sextuplet[2]],sites[sextuplet[3]],sites[sextuplet[4]], sites[sextuplet[5]])
+                    local_coords = translate_hexadentate_ligand(ligand_mol,donor_indices,target_sites)
+
+                offset = rw.GetNumAtoms()
+
+                for atom in ligand_mol.GetAtoms():
+                    global_idx = rw.AddAtom(atom)
+                    coords[global_idx] = local_coords[atom.GetIdx()]
+
+                for bond in ligand_mol.GetBonds():
+                    a1 = bond.GetBeginAtomIdx() + offset
+                    a2 = bond.GetEndAtomIdx() + offset
+                    rw.AddBond(a1, a2, bond.GetBondType())
+
+                for donor_idx in donor_indices:
+                    rw.AddBond(metal_idx,donor_idx + offset,Chem.BondType.DATIVE)
+
+                site_index += 6
+                continue
 
             primary_override = donor_overrides[0] if donor_overrides else None
 
@@ -1461,6 +1980,8 @@ def build_complex_3d(
                 local_coords=triethyl_ligand_positions(ligand_mol,donor_idx_local,target)
             elif ligand_symbol in ("NO2","ONO"):
                 local_coords=nitrito_ligand_positions(ligand_mol, donor_idx_local,target,ligand_symbol)
+            elif ligand_symbol=="H2O":
+                local_coords=water_ligand_positions(ligand_mol, donor_idx_local,target)
             elif ligand_symbol in ("NCS","SCN"):
                 local_coords=thiocyanato_ligand_positions(ligand_mol, donor_idx_local,target,ligand_symbol)    
             elif ligand_mol.GetNumAtoms() == 2:

@@ -21,19 +21,6 @@ Three correction functions are applied in order after the database query:
                                         coordinated positions
     3. apply_selection_rules          — removes symmetry-forbidden bands
                                         based on complex geometry
-
-Usage
------
-    from coordchem.parser import parse_formula
-    from coordchem.spectra.predictor import predict_spectrum
-
-    parsed = parse_formula("[Fe(CN)6]4-")
-    result = predict_spectrum(parsed, spectrum_type="IR")
-
-    print(result)
-    result.bands         # list of CorrectedBand objects
-    result.intensities   # scaled numerical intensities
-    result.warnings      # any missing ligands or correction notes
 """
 import sys
 import os
