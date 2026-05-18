@@ -26,30 +26,38 @@ def plot_spectrum(bands, intensities, title, sigma, invert=False):
     x, y = build_spectrum(bands, intensities, sigma=sigma)
 
     if invert:
-        y         = 1 - y
-        y_range   = [-0.08, 1.0]
-        y_label   = "Transmittance"
-        fill      = "tooney"   # fill to top
-        fillcolor = "rgba(37,99,235,0.08)"
+        y       = 1 - y
+        y_range = [-0.08, 1.0]
+        y_label = "Transmittance"
     else:
-        y_range   = [0, 1.08]
-        y_label   = "Absorbance (a.u.)"
-        fill      = "tozeroy"
-        fillcolor = "rgba(37,99,235,0.08)"
+        y_range = [0, 1.08]
+        y_label = "Absorbance (a.u.)"
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=x, y=y,
-        mode="lines",
-        fill=fill,
-        line=dict(color="#2563eb", width=2),
-        fillcolor=fillcolor,
-    ))
+
+    if invert:
+        # Transmittance — no fill, just the line
+        fig.add_trace(go.Scatter(
+            x=x, y=y,
+            mode="lines",
+            line=dict(color="#2563eb", width=2),
+        ))
+    else:
+        # Absorbance — fill under the curve
+        fig.add_trace(go.Scatter(
+            x=x, y=y,
+            mode="lines",
+            fill="tozeroy",
+            line=dict(color="#2563eb", width=2),
+            fillcolor="rgba(37,99,235,0.08)",
+        ))
+
     for band in bands:
         fig.add_vline(
             x=band.center,
             line=dict(color="rgba(100,116,139,0.3)", width=1, dash="dot")
         )
+
     fig.update_layout(
         title=title,
         xaxis_title="Wavenumber (cm⁻¹)",
