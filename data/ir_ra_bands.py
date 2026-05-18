@@ -11,15 +11,6 @@ Data sourced from:
 
 All wavenumber values in cm⁻¹ at ~298 K.
 
-Usage
------
-    from data.database.ir_ra_bands import IRBandDB
-
-    db = IRBandDB()                      # uses in-memory DB (no file needed)
-    bands = db.get_bands("CN")           # all IR bands for cyanide
-    bands = db.get_bands("NH3", spectrum_type="Raman")
-    bands = db.get_bands("CO", metal="Cr", oxidation_state=0)
-    db.summary("CN")                     # pretty-print to console
 """
 
 import sqlite3
