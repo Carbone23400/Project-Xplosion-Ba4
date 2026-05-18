@@ -223,7 +223,9 @@ with st.sidebar:
         invert    = st.checkbox("Transmittance style (downward peaks)", value=False, key="invert_ir")
     else:
         invert    = False
-
+    st.caption("**Supported ligands** : CN, NC, CO, NO, Cl, Br, I, F, OH, O, S, NH3, " \
+    "H2O, NO2, ONO, SCN, NCS, N3, en, phen, bipy, ox, acac, " \
+    "EDTA, Cp, tpy, py, dmso, PPh3, PMe3, PEt3, CH3.")
 
 if not user_input.strip():
     st.info("Enter a formula or name in the sidebar and click **Analyze**.")
