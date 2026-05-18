@@ -1449,193 +1449,176 @@ def cyclopentadienyl_ligand_positions(ligand_mol,target,ligand_number=0):
 
     return coords
 
-def edta_ligand_positions(ligand_mol,donor_indices, target_sites):
-    ligand_conf=ligand_mol.GetConformer()
-    coords={}
-#place donors
-    for donor_idx, target in zip(donor_indices, target_sites):
-        coords[donor_idx]=target
-    donor_set=set(donor_indices)
+def edta_ligand_positions(ligand_mol, donor_indices, target_sites):
+    """
+    Place all atoms of an EDTA-like hexadentate ligand around a metal at origin.
+
+    donor_indices: 6 RDKit atom indices in canonical order
+        (N1, O_a, O_b, N2, O_c, O_d) per LIGAND_DONOR_INDEX_OVERRIDES["EDTA"].
+    target_sites: matching 3D coordinates (chosen by the dispatcher so that
+        each N is cis to its 2 oxygens and to the other N).
+
+    Strategy: for each carboxylate arm (M-N-CH2-C(=O)-O-M), place CH2 and the
+    carbonyl C inside the M-N-O plane with a small outward radial bulge so the
+    5-membered chelate ring closes visibly. The dangling =O extends further
+    out along the carbonyl C radial. The ethylene bridge -CH2-CH2- sits on
+    the N1-N2 mid-arc, also bulged outward.
+    """
+    coords = {}
+
+    for d_idx, target in zip(donor_indices, target_sites):
+        coords[d_idx] = target
+
+    donor_set = set(donor_indices)
     n_donors = [
-    idx for idx in donor_indices
-    if ligand_mol.GetAtomWithIdx(idx).GetSymbol() == "N"
-]
-
-    if len(n_donors) >= 2:
-        n1_idx, n2_idx = n_donors[:2]
-        n1_pos = coords[n1_idx]
-        n2_pos = coords[n2_idx]
-
-        axis = unit(vec_sub(n2_pos, n1_pos))
-
-        if abs(axis[0]) < 0.9:
-            ref = (1.0, 0.0, 0.0)
-        else:
-            ref = (0.0, 1.0, 0.0)
-
-        side = unit(cross(axis, ref))
-    bridge_carbons = []
-
-    for bond in ligand_mol.GetBonds():
-            a = bond.GetBeginAtom()
-            b = bond.GetEndAtom()
-
-            if a.GetSymbol() != "C" or b.GetSymbol() != "C":
-                continue
-
-            a_neighbors = [n.GetIdx() for n in a.GetNeighbors()]
-            b_neighbors = [n.GetIdx() for n in b.GetNeighbors()]
-
-            a_connected_to_n = any(n in n_donors for n in a_neighbors)
-            b_connected_to_n = any(n in n_donors for n in b_neighbors)
-
-            if a_connected_to_n and b_connected_to_n:
-                bridge_carbons = [a.GetIdx(), b.GetIdx()]
-                break
-
-    if len(bridge_carbons) == 2:
-            c1_idx, c2_idx = bridge_carbons
-
-            coords[c1_idx] = vec_add(
-    n1_pos,
-    vec_add(
-        vec_scale(axis, 0.65),
-        vec_scale(side, 1.4),
-    ),
-)
-
-            coords[c2_idx] = vec_add(
-    n2_pos,
-    vec_add(
-        vec_scale(axis, -0.65),
-        vec_scale(side, 1.4),
-    ),
-)
-
-#place N-C 
-    for donor_idx in donor_indices:
-        donor_atom = ligand_mol.GetAtomWithIdx(donor_idx)
-
-        if donor_atom.GetSymbol() != "N":
-            continue
-
-        donor_pos = coords[donor_idx]
-        direction = unit(donor_pos)
-
-        if abs(direction[0]) < 0.9:
-            ref = (1.0, 0.0, 0.0)
-        else:
-            ref = (0.0, 1.0, 0.0)
-
-        side = unit(cross(direction, ref))
-
-        carbon_neighbors = [
-        n.GetIdx()
-        for n in donor_atom.GetNeighbors()
-        if n.GetSymbol() == "C"
+        idx for idx in donor_indices
+        if ligand_mol.GetAtomWithIdx(idx).GetSymbol() == "N"
     ]
-        for i,c_idx in enumerate(carbon_neighbors):
-            if c_idx in coords:
-                continue
-            sign=1 if i%2==0 else -1
-            coords[c_idx]=vec_add(donor_pos,vec_add(vec_scale(direction,0.65),vec_scale(side,0.75*sign)))
-#place C-O           
-    for donor_idx in donor_indices:
-        donor_atom = ligand_mol.GetAtomWithIdx(donor_idx)
-
-        if donor_atom.GetSymbol() != "O":
-            continue
-
-        donor_pos = coords[donor_idx]
-        direction=unit(donor_pos)
-
-        if abs(direction[0]) < 0.9:
-            ref = (1.0, 0.0, 0.0)
-        else:
-            ref = (0.0, 1.0, 0.0)
-
-        side = unit(cross(direction, ref))
-
-        carbonyl_carbons = [
-        n.GetIdx()
-        for n in donor_atom.GetNeighbors()
-        if n.GetSymbol() == "C"
+    o_donors = [
+        idx for idx in donor_indices
+        if ligand_mol.GetAtomWithIdx(idx).GetSymbol() == "O"
     ]
 
-        if not carbonyl_carbons:
+
+    arm = {}
+    for o_idx in o_donors:
+        o_atom = ligand_mol.GetAtomWithIdx(o_idx)
+        carbonyl_c = next(
+            (n.GetIdx() for n in o_atom.GetNeighbors() if n.GetSymbol() == "C"),
+            None,
+        )
+        if carbonyl_c is None:
             continue
+        c_atom = ligand_mol.GetAtomWithIdx(carbonyl_c)
+        dangling_o = next(
+            (n.GetIdx() for n in c_atom.GetNeighbors()
+             if n.GetSymbol() == "O" and n.GetIdx() != o_idx),
+            None,
+        )
+        ch2 = next(
+            (n.GetIdx() for n in c_atom.GetNeighbors() if n.GetSymbol() == "C"),
+            None,
+        )
+        parent_n = None
+        if ch2 is not None:
+            ch2_atom = ligand_mol.GetAtomWithIdx(ch2)
+            parent_n = next(
+                (n.GetIdx() for n in ch2_atom.GetNeighbors()
+                 if n.GetSymbol() == "N" and n.GetIdx() in donor_set),
+                None,
+            )
+        arm[o_idx] = (parent_n, ch2, carbonyl_c, dangling_o)
 
-        c_idx = carbonyl_carbons[0]
-        c_pos = vec_add(donor_pos, vec_scale(direction, 0.55))
-        coords[c_idx] = c_pos
+    def _place_chain_in_plane(start, end, plane_out, alphas, betas):
+        # Place chain atoms in the plane (start, end, plane_out), at positions
+        # mid + axis*alpha + outward*beta. axis runs start->end; outward is
+        # plane_out re-orthogonalized against axis (so it lies in the plane and
+        # is perpendicular to start->end).
+        mid = vec_scale(vec_add(start, end), 0.5)
+        axis = unit(vec_sub(end, start))
+        out_proj = vec_scale(axis, dot(axis, plane_out))
+        out = unit(vec_sub(plane_out, out_proj))
+        return [
+            vec_add(vec_add(mid, vec_scale(axis, a)), vec_scale(out, b))
+            for a, b in zip(alphas, betas)
+        ]
 
-        carbon_atom = ligand_mol.GetAtomWithIdx(c_idx)
+    ARM_ALPHAS = (-0.555, 0.955)
+    ARM_BETAS = (1.196, 1.196)
+    BRIDGE_ALPHAS = (-0.755, 0.755)
+    BRIDGE_BETAS = (1.196, 1.196)
+    DANGLING_LEN = 1.22
 
-        other_oxygens = [
-        n.GetIdx()
-        for n in carbon_atom.GetNeighbors()
-        if n.GetSymbol() == "O" and n.GetIdx() != donor_idx
-    ]
-
-        for i, o_idx in enumerate(other_oxygens):
-            sign = 1 if i % 2 == 0 else -1
-            coords[o_idx] = vec_add(
-            c_pos,
-            vec_add(
-                vec_scale(direction, 0.35),
-                vec_scale(side, 0.25 * sign),
-            ),
+    for o_idx, (n_idx, ch2, c_idx, dangling) in arm.items():
+        if n_idx is None or n_idx not in coords:
+            continue
+        n_pos = coords[n_idx]
+        o_pos = coords[o_idx]
+        plane_out = unit(vec_add(n_pos, o_pos))
+        placed = _place_chain_in_plane(
+            n_pos, o_pos, plane_out, ARM_ALPHAS, ARM_BETAS
         )
 
-    donor_set= set(donor_indices)
-#place other heavy atoms
+        if ch2 is not None and ch2 not in coords:
+            coords[ch2] = placed[0]
+        if c_idx is not None and c_idx not in coords:
+            coords[c_idx] = placed[1]
+
+        if dangling is not None and dangling not in coords and c_idx in coords:
+            c_pos = coords[c_idx]
+            radial = unit(c_pos)
+            coords[dangling] = vec_add(c_pos, vec_scale(radial, DANGLING_LEN))
+
+    # Ethylene bridge -CH2-CH2- between the two N donors.
+    if len(n_donors) >= 2:
+        n1_idx, n2_idx = n_donors[:2]
+        bridge_pair = []
+        for bond in ligand_mol.GetBonds():
+            a = bond.GetBeginAtom()
+            b = bond.GetEndAtom()
+            if a.GetSymbol() != "C" or b.GetSymbol() != "C":
+                continue
+            a_ns = {n.GetIdx() for n in a.GetNeighbors()
+                    if n.GetSymbol() == "N" and n.GetIdx() in donor_set}
+            b_ns = {n.GetIdx() for n in b.GetNeighbors()
+                    if n.GetSymbol() == "N" and n.GetIdx() in donor_set}
+            if a_ns and b_ns and a_ns != b_ns:
+                bridge_pair = [a.GetIdx(), b.GetIdx()]
+                break
+
+        if len(bridge_pair) == 2:
+            n1_pos = coords[n1_idx]
+            n2_pos = coords[n2_idx]
+            plane_out = unit(vec_add(n1_pos, n2_pos))
+            placed = _place_chain_in_plane(
+                n1_pos, n2_pos, plane_out, BRIDGE_ALPHAS, BRIDGE_BETAS
+            )
+           
+            for c_idx in bridge_pair:
+                c_atom = ligand_mol.GetAtomWithIdx(c_idx)
+                connects_n1 = any(
+                    n.GetIdx() == n1_idx for n in c_atom.GetNeighbors()
+                )
+                coords[c_idx] = placed[0] if connects_n1 else placed[1]
+
+   
     for atom in ligand_mol.GetAtoms():
         idx = atom.GetIdx()
-        if idx in coords:
+        if idx in coords or atom.GetSymbol() == "H":
             continue
-        if atom.GetSymbol()== "H":
+        anchor_pos = None
+        for n in atom.GetNeighbors():
+            if n.GetIdx() in coords:
+                anchor_pos = coords[n.GetIdx()]
+                break
+        if anchor_pos is None:
+            coords[idx] = (0.0, 0.0, 0.0)
             continue
-        neighbors = [n.GetIdx() for n in atom.GetNeighbors()]
-        connected_donors = [n for n in neighbors if n in donor_set]
+        radial = unit(anchor_pos)
+        coords[idx] = vec_add(anchor_pos, vec_scale(radial, 0.9))
 
-        if connected_donors:
-            donor_idx = connected_donors[0]
-            donor_pos = coords[donor_idx]
-            outward = unit(donor_pos)
-
-            coords[idx] = vec_add(
-                donor_pos,
-                vec_scale(outward, 1.0),
-            )
-        else:
-            old_pos = ligand_conf.GetAtomPosition(idx)
-            old_pos = (old_pos.x, old_pos.y, old_pos.z)
-
-            outward = unit(old_pos)
-            coords[idx] = vec_scale(outward, max(norm(old_pos), 1.5))
-#place hydrogens
+  
     for atom in ligand_mol.GetAtoms():
         if atom.GetSymbol() != "H":
             continue
-        h_idx=atom.GetIdx()
+        h_idx = atom.GetIdx()
+        if h_idx in coords:
+            continue
         neighbors = atom.GetNeighbors()
-        if len(neighbors)==0:
+        if not neighbors:
+            coords[h_idx] = (0.0, 0.0, 0.0)
             continue
-        neighbor_idx=neighbors[0].GetIdx()
-        if neighbor_idx not in coords:
-            old_pos = ligand_conf.GetAtomPosition(h_idx)
-            coords[h_idx] = (old_pos.x, old_pos.y, old_pos.z)
+        parent_idx = neighbors[0].GetIdx()
+        if parent_idx not in coords:
+            coords[h_idx] = (0.0, 0.0, 0.0)
             continue
-        base_pos=coords[neighbor_idx]
-        outward=unit(base_pos)
-
-        coords[h_idx] = vec_add(
-            base_pos,
-            vec_scale(outward, 0.75),
-            )
+        parent_pos = coords[parent_idx]
+        radial = unit(parent_pos) if norm(parent_pos) > 0.1 else (0.0, 0.0, 1.0)
+        coords[h_idx] = vec_add(parent_pos, vec_scale(radial, 1.05))
 
     return coords
-   
+
+
 def build_complex_3d(
     parsed: ParsedComplex,
     distance: float = 2.0,
@@ -1937,15 +1920,19 @@ def build_complex_3d(
                 
                 donor_indices = donor_overrides[:6]
                 if ligand_symbol in ("EDTA", "edta"):
+                   # Donor order from LIGAND_DONOR_INDEX_OVERRIDES["EDTA"] = (N1, O, O, N2, O, O).
+                   #  Both N donors are connected by a -CH2-CH2- bridge so they must be cis
+                   # (sites[0] = +x, sites[2] = +y), and each N's two carboxylate O donors
+                   # must also be cis to that N. The only trans pair below is O_b/O_d,
+                   # one O from each N, which forms no chelate ring.
                    target_sites = (
-    sites[0],  
-    sites[2], 
-    sites[4], 
-
-    sites[1],  
-    sites[3], 
-    sites[5],  
-)
+                       sites[0],  # N1   -> +x
+                       sites[3],  # O_a  -> -y  (cis to N1)
+                       sites[5],  # O_b  -> -z  (cis to N1)
+                       sites[2],  # N2   -> +y  (cis to N1)
+                       sites[1],  # O_c  -> -x  (cis to N2)
+                       sites[4],  # O_d  -> +z  (cis to N2)
+                   )
 
                    local_coords=edta_ligand_positions(ligand_mol,donor_indices, target_sites)
                 else:
