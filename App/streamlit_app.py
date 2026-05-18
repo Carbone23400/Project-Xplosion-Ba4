@@ -173,6 +173,15 @@ def dmso_assignment_note(parsed) -> str | None:
     return None
 
 
+def _plot_block(result, label, sigma, user_input, invert=False):
+    if result.bands:
+        st.plotly_chart(
+            plot_spectrum(result.bands, result.intensities, f"{label} — {user_input}", sigma, invert=invert),
+            use_container_width=True,
+        )
+    else:
+        st.info(f"No {label} data available for this complex.")
+
 # ---------------------------------------------------------------------------
 # App layout
 # ---------------------------------------------------------------------------
@@ -201,24 +210,20 @@ st.caption("±20–50 cm⁻¹ accuracy · data from Nakamoto 6th ed.")
 
 with st.sidebar:
     st.header("Complex Input")
-
     input_mode = st.radio("Input mode", ["Formula", "Name"], horizontal=True)
-
     if input_mode == "Formula":
         user_input = st.text_input("Enter a coordination complex formula", value="[Fe(CN)6]4-")
     else:
         user_input = st.text_input("Enter a coordination complex name", value="hexacyanoferrate(II)")
-
-    analyze = st.button("Analyze", type="primary", use_container_width=True)
-
+    analyze       = st.button("Analyze", type="primary", use_container_width=True)
     st.divider()
-
-    invert        = st.checkbox("Transmittance style (downward peaks)", value=False)
     spectrum_type = st.radio("Spectrum type", ["IR", "Raman", "Both"], index=2, horizontal=True)
     sigma         = st.slider("Peak width σ (cm⁻¹)", min_value=5, max_value=60, value=20, step=5)
+    if spectrum_type in ("IR", "Both"):
+        invert    = st.checkbox("Transmittance style (downward peaks)", value=False, key="invert_ir")
+    else:
+        invert    = False
 
-    st.divider()
-    st.caption(f"**Supported ligands:** {supported_ligands_text()}")
 
 if not user_input.strip():
     st.info("Enter a formula or name in the sidebar and click **Analyze**.")
@@ -338,25 +343,18 @@ for r in (ir_result, raman_result):
             st.warning(w)
 
 
-def _plot_block(result, label):
-    if result.bands:
-        st.plotly_chart(
-            plot_spectrum(result.bands, result.intensities, f"{label} — {user_input}", sigma,  invert=invert),
-            use_container_width=True,
-        )
-    else:
-        st.info(f"No {label} data available for this complex.")
-
 # Spectrum plots
 st.subheader("Predicted Spectra")
 if spectrum_type == "Both":
     col_ir, col_ra = st.columns(2)
     with col_ir:
-        _plot_block(ir_result, "IR")
+        _plot_block(ir_result,    "IR",    sigma, user_input, invert=invert)
     with col_ra:
-        _plot_block(raman_result, "Raman")
+        _plot_block(raman_result, "Raman", sigma, user_input, invert=False)
+elif want_ir:
+    _plot_block(ir_result,    "IR",    sigma, user_input, invert=invert)
 else:
-    _plot_block(ir_result if want_ir else raman_result, spectrum_type)
+    _plot_block(raman_result, "Raman", sigma, user_input, invert=False)
 
 # Band assignments
 st.subheader("Band Assignments")
