@@ -324,31 +324,6 @@ def build_ligand_3d(smiles: str) -> Chem.Mol:
 
     return mol
 
-#celui la je vais peut etre l'enlever
-def find_donor_atom2(
-    mol: Chem.Mol,
-    donor_symbol: str,
-    override: Optional[int] = None,
-) -> int:
-    if override is not None:
-        if 0 <= override < mol.GetNumAtoms():
-            return override
-
-    candidates: Iterable[str]
-    if donor_symbol == "?" or not donor_symbol:
-        # if the ligand symbol is unknown the first heavy atom is taken
-        for atom in mol.GetAtoms():
-            if atom.GetSymbol() != "H":
-                return atom.GetIdx()
-        raise ValueError("Ligand has no non-H atoms")
-
-    candidates = [s.strip() for s in donor_symbol.split("/") if s.strip()]
-    for symbol in candidates:
-        for atom in mol.GetAtoms():
-            if atom.GetSymbol() == symbol:
-                return atom.GetIdx()
-
-    raise ValueError(f"No donor atom matching {donor_symbol!r} found in ligand")
 
 def find_donor_atom(mol, donor_symbol, override: Optional[int] = None):
     if override is not None and 0 <= override < mol.GetNumAtoms():
@@ -700,7 +675,48 @@ def nitrito_ligand_positions(ligand_mol, donor_idx, target, ligand_symbol):
             coords[idx]=target
     return coords
 
+def methyl_ligand_positions(ligand_mol, donor_idx, target, nh_distance=1.0, spread=0.8):
+    direction = unit(target)
 
+    center = target
+    coords = {}
+    coords[donor_idx] = center
+
+    if abs(direction[0]) < 0.9:
+        ref = (1.0, 0.0, 0.0)
+    else:
+        ref = (0.0, 1.0, 0.0)
+
+    u = unit(cross(direction, ref))
+    v = unit(cross(direction, u))
+
+    h_indices = [
+        atom.GetIdx()
+        for atom in ligand_mol.GetAtoms()
+        if atom.GetSymbol() == "H"
+    ]
+
+    import math
+
+    for i, h_idx in enumerate(h_indices[:3]):
+        angle = 2 * math.pi * i / 3
+
+        radial = vec_add(
+            vec_scale(u, math.cos(angle) * spread),
+            vec_scale(v, math.sin(angle) * spread),
+        )
+
+        outward = vec_scale(direction, 0.4)
+
+        h_pos = vec_add(center, vec_add(radial, outward))
+        coords[h_idx] = h_pos
+
+    for atom in ligand_mol.GetAtoms():
+        idx = atom.GetIdx()
+        if idx not in coords:
+            coords[idx] = center
+
+    return coords
 def ammonia_ligand_positions(ligand_mol, donor_idx, target, nh_distance=1.0, spread=0.8):
     direction = unit(target)
 
@@ -1865,12 +1881,13 @@ def build_complex_3d(
                 continue
 
             #pentadentate case
-            elif denticity==5:
+            elif ligand_symbol == "Cp" or denticity==5:
                     site=next_free_site()
                     if site is None:
                         break
                     target=sites[site]
-                    if ligand_symbol=="Cp":
+                    if ligand_symbol == "Cp":
+
                         local_coords=cyclopentadienyl_ligand_positions(ligand_mol,target,site)
                     else:
                         ligand_conf=ligand_mol.GetConformer()
@@ -1921,13 +1938,13 @@ def build_complex_3d(
                 donor_indices = donor_overrides[:6]
                 if ligand_symbol in ("EDTA", "edta"):
                    target_sites = (
-    sites[0],  # N1
-    sites[2],  # O de N1
-    sites[4],  # O de N1
+    sites[0],  
+    sites[2], 
+    sites[4], 
 
-    sites[1],  # N2
-    sites[3],  # O de N2
-    sites[5],  # O de N2
+    sites[1],  
+    sites[3], 
+    sites[5],  
 )
 
                    local_coords=edta_ligand_positions(ligand_mol,donor_indices, target_sites)
@@ -1972,6 +1989,8 @@ def build_complex_3d(
                 local_coords=ammonia_ligand_positions(ligand_mol, donor_idx_local,target)
             elif ligand_symbol=="py":
                 local_coords=pyridine_ligand_positions(ligand_mol, donor_idx_local,target, site)    
+            elif ligand_symbol=="CH3":
+                local_coords=methyl_ligand_positions(ligand_mol, donor_idx_local,target, site)    
             elif ligand_symbol=="PMe3":
                 local_coords=trimethyl_ligand_positions(ligand_mol, donor_idx_local,target)
             elif ligand_symbol=="dmso":
